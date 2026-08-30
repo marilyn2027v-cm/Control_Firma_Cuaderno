@@ -1,0 +1,6235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Control de Firmas de Cuaderno GIS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Great+Vibes&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;font-family:Montserrat,Arial}
+body{margin:0;overflow:hidden;background:linear-gradient(135deg,#38bdf8,#1e3a8a);color:white}
+
+body:before{
+content:"";position:fixed;inset:0;
+background-image:linear-gradient(#ffffff18 1px,transparent 1px),linear-gradient(90deg,#ffffff18 1px,transparent 1px);
+background-size:35px 35px;
+}
+
+header{
+height:80px;display:flex;align-items:center;justify-content:center;
+position:relative;
+background:linear-gradient(90deg,#075985,#38bdf8,#1e40af);
+position:relative;z-index:5
+}
+
+.logo{
+position:absolute;
+left:20px;
+width:85px;
+height:65px;
+object-fit:contain;
+filter:drop-shadow(0 0 12px white);
+animation:logoGlow 2s infinite alternate;
+}
+@keyframes logoGlow{
+from{filter:drop-shadow(0 0 8px white)}
+to{filter:drop-shadow(0 0 18px white)}
+}
+to{filter:drop-shadow(0 0 22px #facc15)}
+}
+
+
+
+
+.reloj{
+display:none !important;
+}
+
+#panel{
+position:absolute;top:80px;left:0;width:360px;bottom:0;
+padding:12px;overflow:auto;z-index:4;
+background:linear-gradient(#082f49,#0f172a)
+}
+
+.card{
+background:linear-gradient(135deg,#172554,#164e63);
+padding:12px;border-radius:14px;margin-bottom:12px;
+box-shadow:0 0 15px #0284c7
+}
+
+.resumen{
+background:linear-gradient(135deg,#92400e,#facc15,#854d0e);
+text-align:center
+}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.stat{background:#0005;padding:8px;border-radius:8px;font-size:12px}
+
+button{
+width:100%;padding:10px;margin:4px 0;
+border:0;border-radius:10px;
+background:linear-gradient(90deg,#0284c7,#38bdf8);
+color:white;font-weight:bold
+}
+
+.buscar{width:100%;padding:9px;border-radius:8px;border:0}
+
+.buscar{width:100%;padding:9px;border-radius:8px;border:0;margin-bottom:8px;font-weight:bold}
+.item{
+background:#111827;padding:9px;margin:6px 0;border-radius:8px;
+cursor:pointer;font-size:12px
+}
+.realizada{border-left:5px solid #22c55e}
+.pendiente{border-left:5px solid #ef4444}
+
+#map{position:absolute;top:80px;left:360px;right:0;bottom:0;z-index:1}
+
+.cuaderno{
+width:34px;height:34px;border-radius:8px;
+display:flex;align-items:center;justify-content:center;
+animation:flotar 1.8s infinite;font-size:18px
+}
+
+.rojo{background:linear-gradient(#ef4444,#991b1b);box-shadow:0 0 15px red}
+.verde{background:linear-gradient(#22c55e,#166534);box-shadow:0 0 15px green}
+
+@keyframes flotar{50%{transform:translateY(-7px)}}
+
+.exportar{
+position:absolute;right:15px;bottom:15px;z-index:10;
+width:55px;height:32px;border:0;border-radius:8px;
+background:#facc15;color:#422006;font-weight:bold;
+box-shadow:0 0 15px #facc15;overflow:hidden
+}
+
+.exportar:after{
+content:"";position:absolute;left:-100%;top:0;width:40%;height:100%;
+background:white8;animation:luz 2s infinite
+}
+@keyframes luz{to{left:150%}}
+
+
+.exportar{
+position:absolute;
+right:15px;
+bottom:15px;
+z-index:3000;
+width:55px;
+height:32px;
+border:0;
+border-radius:8px;
+background:#facc15;
+color:#422006;
+font-weight:bold;
+box-shadow:0 0 15px #facc15;
+cursor:pointer;
+}
+
+
+
+
+100%{
+opacity:0;
+transform:scale(.2) translate(var(--movx),var(--movy));
+}
+}
+
+
+
+
+@keyframes energiaChispa{
+0%{
+opacity:1;
+transform:translate(0,0) rotate(0deg) scale(1);
+}
+70%{
+opacity:1;
+}
+100%{
+opacity:0;
+transform:
+translate(var(--x),var(--y))
+rotate(var(--r))
+scale(.2);
+}
+}
+
+
+
+@keyframes ondaEnergia{
+from{
+transform:scale(.2);
+opacity:1;
+}
+to{
+transform:scale(4);
+opacity:0;
+}
+}
+
+
+
+
+100%{
+opacity:0;
+transform:translate(var(--dx),var(--dy)) scale(0);
+}
+}
+
+
+
+
+100%{transform:scale(5);opacity:0}
+}
+
+.chispa{
+position:fixed;
+width:4px;
+height:4px;
+border-radius:50%;
+background:radial-gradient(circle,#ffffff,#fde047,#f59e0b);
+pointer-events:none;
+z-index:99999;
+box-shadow:0 0 6px #facc15,0 0 12px #fff;
+animation:particulaRapida .45s ease-out forwards;
+}
+
+@keyframes particulaRapida{
+0%{
+opacity:1;
+transform:translate(0,0) scale(1.8);
+}
+100%{
+opacity:0;
+transform:translate(var(--x),var(--y)) scale(.1);
+}
+}
+
+/* EFECTO CURSOR ENERGIA */
+.cursorParticula{
+position:fixed;
+width:6px;
+height:6px;
+background:#facc15;
+border-radius:50%;
+pointer-events:none;
+z-index:999999;
+box-shadow:0 0 8px #fff,0 0 15px #facc15;
+animation:salidaParticula .7s ease-out forwards;
+}
+
+@keyframes salidaParticula{
+0%{
+opacity:1;
+transform:translate(0,0) scale(1);
+}
+100%{
+opacity:0;
+transform:translate(var(--tx),var(--ty)) scale(0);
+}
+}
+
+.destelloClick{
+position:fixed;
+width:15px;
+height:15px;
+border-radius:50%;
+border:2px solid #fde047;
+pointer-events:none;
+z-index:999998;
+animation:ondaClick .5s ease-out forwards;
+}
+
+@keyframes ondaClick{
+0%{opacity:1;transform:scale(.5)}
+100%{opacity:0;transform:scale(4)}
+}
+
+
+.titulo{
+font-family: Montserrat, Arial, sans-serif !important;
+font-size: 54px !important;
+font-weight: 700 !important;
+font-style: normal !important;
+letter-spacing: 1px;
+color: #ffffff !important;
+text-align: center;
+line-height: 1;
+text-shadow: 0 0 10px #ffffff, 0 0 25px rgba(255,255,255,.8);
+}
+
+
+/* GRID DEGRADADO PARA LABELS DE ZONAS */
+.zona-label, .base-label, .titulo-base{
+background:
+linear-gradient(135deg,rgba(56,189,248,.95),rgba(30,64,175,.95));
+background-image:
+linear-gradient(rgba(255,255,255,.12) 1px, transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.12) 1px, transparent 1px),
+linear-gradient(135deg,#38bdf8,#1e40af);
+background-size:22px 22px,22px 22px,100% 100%;
+border-radius:10px;
+padding:8px;
+box-shadow:0 0 12px rgba(56,189,248,.7);
+font-weight:bold;
+}
+
+/* VARIACION GRID PARA FIRMAS POR BASE */
+.firmas-base-header{
+background:
+linear-gradient(135deg,rgba(14,116,144,.95),rgba(59,130,246,.95));
+background-image:
+linear-gradient(rgba(255,255,255,.10) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.10) 1px,transparent 1px),
+linear-gradient(135deg,#0e7490,#2563eb);
+background-size:16px 16px,16px 16px,100% 100%;
+border-radius:12px;
+padding:10px;
+box-shadow:0 0 15px rgba(14,165,233,.6);
+}
+
+
+/* GRID ESTETICO VISIBLE PARA LABELS */
+.grid-estetico-zona{
+position:relative;
+overflow:hidden;
+background:
+linear-gradient(135deg,#38bdf8,#1d4ed8);
+}
+
+.grid-estetico-zona::before{
+content:"";
+position:absolute;
+inset:0;
+background-image:
+linear-gradient(rgba(255,255,255,.20) 1px, transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.20) 1px, transparent 1px);
+background-size:18px 18px;
+opacity:.55;
+pointer-events:none;
+}
+
+.grid-estetico-zona > *{
+position:relative;
+z-index:2;
+}
+
+
+/* GRID DIFERENTE PARA FIRMAS POR BASE */
+.grid-estetico-firmas{
+position:relative;
+overflow:hidden;
+background:
+linear-gradient(135deg,#0891b2,#2563eb);
+}
+
+.grid-estetico-firmas::before{
+content:"";
+position:absolute;
+inset:0;
+background-image:
+linear-gradient(rgba(255,255,255,.16) 1px, transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.16) 1px, transparent 1px);
+background-size:12px 12px;
+opacity:.6;
+pointer-events:none;
+}
+
+.grid-estetico-firmas > *{
+position:relative;
+z-index:2;
+}
+
+
+/* PALETA NUEVA - DISEÑO VISUAL */
+body{
+background:
+linear-gradient(135deg,#FFF1D1 0%,#00B7CD 100%);
+}
+
+/* GRID GENERAL */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(94,49,34,.10) 1px,transparent 1px),
+linear-gradient(90deg,rgba(94,49,34,.10) 1px,transparent 1px);
+background-size:35px 35px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Panel de bases */
+.panel,
+.card,
+.contenedor,
+.box{
+background:rgba(255,241,209,.92);
+border:2px solid rgba(0,183,205,.45);
+box-shadow:0 8px 25px rgba(94,49,34,.18);
+}
+
+/* Bases MAYORAZGO SALAMANCA ETC */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#00B7CD,#FF9100);
+color:#FFF1D1;
+border:2px solid #DF301C;
+box-shadow:
+0 0 15px rgba(0,183,205,.7),
+0 5px 15px rgba(94,49,34,.25);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#5E3122,#DF301C);
+color:#FFF1D1;
+border:2px solid #FF9100;
+box-shadow:0 0 18px rgba(255,145,0,.55);
+}
+
+/* Botones */
+button{
+background:linear-gradient(135deg,#DF301C,#FF9100);
+color:#FFF1D1;
+border:none;
+}
+
+button:hover{
+box-shadow:0 0 15px #FF9100;
+}
+
+
+/* ===== NUEVA ARMONIA VISUAL - LIMPIA Y SUAVE ===== */
+
+/* Fondo general */
+body{
+background:
+linear-gradient(135deg,#FFFDF8 0%,#E6F7FA 45%,#D6EEF8 100%);
+color:#5E3122;
+}
+
+/* Grid elegante */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(0,183,205,.10) 1px,transparent 1px),
+linear-gradient(90deg,rgba(0,183,205,.10) 1px,transparent 1px);
+background-size:40px 40px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezados principales */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#00B7CD,#7EDCE8);
+color:#FFFFFF;
+border-radius:16px;
+box-shadow:0 8px 25px rgba(0,183,205,.25);
+}
+
+/* Título */
+.titulo{
+color:#FFFFFF !important;
+text-shadow:0 2px 8px rgba(94,49,34,.35);
+}
+
+/* Paneles */
+.panel,
+.card,
+.contenedor,
+.box{
+background:rgba(255,255,255,.92);
+border:1px solid rgba(0,183,205,.25);
+box-shadow:0 6px 20px rgba(94,49,34,.12);
+color:#5E3122;
+}
+
+/* Labels de bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#00B7CD,#9BE3ED);
+color:#FFFFFF;
+border:1px solid rgba(255,255,255,.8);
+box-shadow:0 4px 15px rgba(0,183,205,.25);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#FFF1D1,#FFD8A8);
+color:#5E3122;
+border-left:5px solid #FF9100;
+box-shadow:0 5px 18px rgba(255,145,0,.18);
+}
+
+/* Botones */
+button{
+background:
+linear-gradient(135deg,#FF9100,#DF301C);
+color:white;
+border:none;
+box-shadow:0 4px 12px rgba(223,48,28,.25);
+}
+
+button:hover{
+filter:brightness(1.05);
+}
+
+
+/* ===== VERSION PALETA ARMONICA CON FF9A00 ===== */
+
+body{
+background:
+linear-gradient(135deg,#FFFFFF 0%,#FFF4E5 35%,#DDF7FA 100%);
+color:#5E3122;
+}
+
+/* Grid suave futurista */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(0,183,205,.10) 1px,transparent 1px),
+linear-gradient(90deg,rgba(0,183,205,.10) 1px,transparent 1px);
+background-size:38px 38px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezados */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#00B7CD 0%,#5ED5E5 55%,#FFFFFF 100%);
+color:#FFFFFF;
+box-shadow:0 8px 22px rgba(0,183,205,.25);
+}
+
+/* Titulo */
+.titulo{
+color:#FFFFFF !important;
+text-shadow:0 2px 8px rgba(94,49,34,.35);
+}
+
+/* Paneles generales */
+.panel,
+.card,
+.contenedor,
+.box{
+background:rgba(255,255,255,.94);
+border:1px solid rgba(0,183,205,.25);
+box-shadow:0 6px 20px rgba(94,49,34,.12);
+}
+
+/* Zonas */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#00B7CD,#8BE4EE);
+color:#FFFFFF;
+border-radius:12px;
+box-shadow:0 5px 14px rgba(0,183,205,.25);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#FFF1D1,#FF9A00);
+color:#5E3122;
+border-left:5px solid #FF9A00;
+}
+
+/* Botones */
+button{
+background:
+linear-gradient(135deg,#FF9A00,#DF301C);
+color:#FFFFFF;
+box-shadow:0 5px 14px rgba(255,154,0,.35);
+}
+
+/* Estados visuales */
+.realizado{
+box-shadow:0 0 12px rgba(0,183,205,.35);
+}
+
+.pendiente{
+box-shadow:0 0 12px rgba(223,48,28,.25);
+}
+
+
+/* ===== CAMBIO ENCABEZADO AMARILLO/NARANJA + FONDO ROJO GRID ===== */
+
+/* Fondo principal con rojo DF301C */
+body{
+background:
+linear-gradient(135deg,
+rgba(223,48,28,.92),
+rgba(239,105,5,.75)),
+#DF301C;
+color:#5E3122;
+}
+
+/* Grid sobre fondo rojo */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,241,209,.18) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,241,209,.18) 1px,transparent 1px);
+background-size:38px 38px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezados con los amarillos/naranjas */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#FF9A00 0%,#FF9100 45%,#EF6905 100%);
+color:#FFFFFF;
+box-shadow:
+0 8px 25px rgba(94,49,34,.35),
+0 0 20px rgba(255,154,0,.45);
+}
+
+/* Titulo */
+.titulo{
+color:#FFFFFF !important;
+text-shadow:0 2px 8px rgba(94,49,34,.45);
+}
+
+/* Paneles blancos para mantener lectura */
+.panel,
+.card,
+.contenedor,
+.box{
+background:rgba(255,255,255,.94);
+border:1px solid rgba(255,241,209,.8);
+box-shadow:0 8px 25px rgba(94,49,34,.25);
+}
+
+/* Bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#FF9A00,#EF6905);
+color:#FFFFFF;
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#FFF1D1,#FF9A00);
+color:#5E3122;
+}
+
+
+/* ===== PALETA UNICA DF301C FF9100 FF9A00 FFFC8C BLANCO ===== */
+
+/* Fondo principal */
+body{
+background:
+linear-gradient(135deg,#DF301C 0%,#FF9100 55%,#FF9A00 100%);
+color:#FFFFFF;
+}
+
+/* Grid tecnológico usando solo la paleta */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,252,140,.22) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,252,140,.22) 1px,transparent 1px);
+background-size:36px 36px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezado */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#FFFC8C 0%,#FF9A00 45%,#FF9100 100%);
+color:#FFFFFF;
+text-shadow:
+0 2px 4px #DF301C,
+0 4px 10px rgba(223,48,28,.55);
+box-shadow:
+0 8px 25px rgba(223,48,28,.35);
+}
+
+/* Titulo */
+.titulo{
+color:#FFFFFF !important;
+text-shadow:
+0 2px 3px #DF301C,
+0 0 12px #FF9100;
+}
+
+/* Paneles */
+.panel,
+.card,
+.contenedor,
+.box{
+background:#FFFFFF;
+color:#DF301C;
+border:2px solid #FFFC8C;
+box-shadow:
+0 8px 25px rgba(94,49,34,.25);
+}
+
+/* Labels de bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#FF9A00,#FF9100,#DF301C);
+color:#FFFFFF;
+text-shadow:0 2px 4px #DF301C;
+box-shadow:0 0 15px rgba(255,252,140,.6);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#FFFC8C,#FF9A00);
+color:#DF301C;
+text-shadow:none;
+}
+
+/* Botones */
+button{
+background:
+linear-gradient(135deg,#DF301C,#FF9100,#FF9A00);
+color:#FFFFFF;
+text-shadow:0 2px 3px #DF301C;
+border:1px solid #FFFC8C;
+box-shadow:0 5px 15px rgba(223,48,28,.4);
+}
+
+
+/* ===== CORRECCION FONDO AZUL - PALETA SOLO SOLICITADA ===== */
+
+/* Eliminar tonos azules del fondo general */
+body{
+background:
+linear-gradient(135deg,#DF301C 0%,#FF9100 55%,#FF9A00 100%) !important;
+color:#FFFFFF;
+}
+
+/* Grid usando solo amarillo suave */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,252,140,.18) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,252,140,.18) 1px,transparent 1px);
+background-size:35px 35px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Cajas principales con rojo oscuro y degradado */
+.panel,
+.card,
+.contenedor,
+.box{
+background:
+linear-gradient(135deg,#DF301C,#8F1F14) !important;
+color:#FFFFFF !important;
+border:1px solid #FFFC8C;
+box-shadow:0 8px 22px rgba(0,0,0,.25);
+}
+
+/* Encabezados de cajas */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#DF301C,#FF9100,#FF9A00) !important;
+color:#FFFFFF !important;
+}
+
+/* Labels de bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#DF301C,#FF9100) !important;
+color:#FFFFFF !important;
+text-shadow:0 2px 4px rgba(0,0,0,.35);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#DF301C,#FF9100) !important;
+color:#FFFFFF !important;
+}
+
+/* Textos dentro de cajas */
+.panel *,
+.card *,
+.contenedor *,
+.box *,
+.zona-label *,
+.base-label *,
+.firmas-base-header *{
+color:#FFFFFF;
+}
+
+
+/* CORRECCION ELIMINAR AZULES OSCUROS RESTANTES */
+.item,
+.firma-item,
+.lista-item,
+.resultado-item,
+.lead-item{
+background:linear-gradient(135deg,#DF301C,#8F1F14) !important;
+color:#FFFFFF !important;
+border-left:5px solid #FF9A00 !important;
+box-shadow:0 4px 10px rgba(0,0,0,.25);
+}
+
+.item *,
+.firma-item *,
+.lista-item *,
+.resultado-item *,
+.lead-item *{
+color:#FFFFFF !important;
+}
+
+/* Encabezado con rojo oscuro solicitado */
+.titulo-container,
+header,
+.encabezado,
+.firmas-base-header{
+background:
+linear-gradient(135deg,#8F1F14,#DF301C,#FF9100) !important;
+color:#FFFFFF !important;
+text-shadow:0 2px 4px rgba(0,0,0,.45);
+}
+
+/* Recuadro de firmas */
+.firmas-base{
+background:
+linear-gradient(135deg,#DF301C,#8F1F14) !important;
+}
+
+
+/* AJUSTE FINAL: ELIMINAR CUALQUIER FONDO AZUL MARINO RESTANTE */
+#lista .item,
+#lista .firma-item,
+#lista .lista-item,
+#lista .resultado-item,
+#lista .lead-item,
+#lista > div,
+.item.realizada,
+.item.pendiente,
+.item{
+background:#8F1F14 !important;
+background-image:linear-gradient(135deg,#DF301C 0%,#8F1F14 100%) !important;
+color:#FFFFFF !important;
+border:1px solid #FF9A00 !important;
+border-left:6px solid #FFFC8C !important;
+box-shadow:0 4px 10px rgba(0,0,0,.22) !important;
+}
+
+#lista .item *,
+#lista .firma-item *,
+#lista .lista-item *,
+#lista .resultado-item *,
+#lista .lead-item *,
+#lista > div *{
+color:#FFFFFF !important;
+}
+
+#lista .item:hover,
+#lista .firma-item:hover,
+#lista > div:hover{
+background:#A32417 !important;
+background-image:linear-gradient(135deg,#FF9100 0%,#DF301C 55%,#8F1F14 100%) !important;
+}
+
+/* Fondo del panel de firmas */
+#lista{
+background:transparent !important;
+}
+
+.card,
+.panel,
+.contenedor,
+.box,
+.firmas-base,
+.firmas-base-header{
+background-image:linear-gradient(135deg,#DF301C 0%,#8F1F14 100%) !important;
+color:#FFFFFF !important;
+}
+
+/* Buscador más armónico */
+.buscar,
+input[type="text"],
+input[type="search"]{
+background:#FFF1D1 !important;
+color:#5E3122 !important;
+border:1px solid #FF9A00 !important;
+}
+
+/* Encabezado más rojo oscuro */
+header,
+.encabezado,
+.titulo-container{
+background:#8F1F14 !important;
+background-image:linear-gradient(135deg,#8F1F14 0%,#DF301C 55%,#FF9100 100%) !important;
+color:#FFFFFF !important;
+}
+
+
+/* CORRECCION: ELIMINAR RESTOS AZUL MARINO - SOLO DISEÑO */
+
+/* Reemplazo de fondos oscuros heredados */
+html,
+body{
+background:
+linear-gradient(135deg,#DF301C 0%,#FF9100 55%,#FF9A00 100%) !important;
+}
+
+/* Contenedores internos que aún puedan tener azul */
+div,
+section,
+article,
+aside{
+}
+
+/* Lista de firmas sin tonos azul oscuro */
+.firma,
+.firma-card,
+.item,
+.lista-firma,
+.firma-item,
+.card-firma,
+#lista div{
+background:
+linear-gradient(135deg,#DF301C,#8F1F14) !important;
+color:#FFFFFF !important;
+}
+
+/* Estados de texto */
+.firma *,
+.firma-card *,
+.item *,
+.lista-firma *,
+.firma-item *,
+.card-firma *,
+#lista div *{
+color:#FFFFFF !important;
+}
+
+/* Cajas principales */
+.panel,
+.card,
+.box,
+.contenedor{
+background:
+linear-gradient(135deg,#DF301C,#8F1F14) !important;
+}
+
+/* Evitar colores azulados heredados */
+[class*="dark"],
+[class*="blue"],
+[class*="navy"]{
+background-color:#8F1F14 !important;
+color:#FFFFFF !important;
+}
+
+
+/* ===== NUEVA PALETA AZUL UNICA ===== */
+/* Colores:
+#0D47A1 azul profundo
+#2196F3 azul principal
+#90CAF9 azul claro
+#2F2FE4 azul eléctrico
+Blanco para textos
+*/
+
+body{
+background:
+linear-gradient(135deg,#0D47A1 0%,#2196F3 55%,#90CAF9 100%) !important;
+color:#FFFFFF !important;
+}
+
+/* Grid tecnológico azul */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,255,255,.18) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.18) 1px,transparent 1px);
+background-size:35px 35px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezados */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#0D47A1,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+text-shadow:0 2px 5px rgba(0,0,0,.35);
+}
+
+/* Paneles */
+.panel,
+.card,
+.box,
+.contenedor{
+background:
+linear-gradient(135deg,#2196F3,#0D47A1) !important;
+color:#FFFFFF !important;
+border:1px solid #90CAF9 !important;
+box-shadow:0 8px 22px rgba(13,71,161,.45);
+}
+
+/* Bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+border:1px solid #90CAF9;
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#0D47A1,#2196F3) !important;
+color:#FFFFFF !important;
+}
+
+/* Tarjetas de firmas */
+.item,
+.firma-item,
+.lista-item,
+.card-firma,
+#lista div{
+background:
+linear-gradient(135deg,#0D47A1,#2F2FE4) !important;
+color:#FFFFFF !important;
+border-color:#90CAF9 !important;
+}
+
+.item *,
+.firma-item *,
+.lista-item *,
+.card-firma *,
+#lista div *{
+color:#FFFFFF !important;
+}
+
+/* Buscadores */
+input,
+.buscar{
+background:#90CAF9 !important;
+color:#0D47A1 !important;
+border:1px solid #FFFFFF !important;
+}
+
+/* Botones */
+button{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+border:1px solid #90CAF9 !important;
+box-shadow:0 5px 15px rgba(47,47,228,.45);
+}
+
+
+/* CORRECCION SOMBRA DE TEXTO NEGRA */
+.titulo,
+header *,
+.encabezado *,
+.titulo-container *,
+.zona-label *,
+.base-label *,
+.firmas-base-header *,
+.item *,
+.firma-item *,
+.lista-item *,
+.card-firma *{
+text-shadow:
+0 2px 4px rgba(0,0,0,.75) !important;
+}
+
+/* Eliminar sombras rojizas heredadas */
+text-shadow{
+color:inherit;
+}
+
+
+/* ===== CORRECCION CAJAS DE BASES Y LISTAS CON PALETA AZUL ===== */
+/* Paleta:
+#0D47A1 azul profundo
+#2196F3 azul principal
+#90CAF9 azul claro
+#2F2FE4 azul eléctrico
+blanco texto
+*/
+
+.zona-label,
+.base-label,
+#listaBase .item,
+#listaBase .firma-item,
+#listaBase .lista-item,
+#lista .item,
+#lista .firma-item,
+#lista .lista-item,
+.item.pendiente,
+.item.realizada{
+background:
+linear-gradient(135deg,#0D47A1 0%,#2F2FE4 55%,#2196F3 100%) !important;
+color:#FFFFFF !important;
+border:1px solid #90CAF9 !important;
+box-shadow:0 5px 15px rgba(13,71,161,.45) !important;
+}
+
+.zona-label *,
+.base-label *,
+#listaBase *,
+#lista *,
+.item *,
+.firma-item *,
+.lista-item *{
+color:#FFFFFF !important;
+text-shadow:0 2px 4px rgba(0,0,0,.75) !important;
+}
+
+/* Diferenciar estados sin salir de la gama */
+.item.pendiente{
+background:
+linear-gradient(135deg,#0D47A1,#2F2FE4) !important;
+}
+
+.item.realizada{
+background:
+linear-gradient(135deg,#2196F3,#90CAF9) !important;
+color:#FFFFFF !important;
+}
+
+/* Cuadro general de selección de bases */
+.panel-bases,
+.bases-container,
+#bases{
+background:
+linear-gradient(135deg,#0D47A1,#2196F3) !important;
+border:1px solid #90CAF9 !important;
+}
+
+
+/* CORRECCION SOMBRA NEGRA EN TEXTOS DE BASES */
+.zona-label,
+.base-label,
+.zona-label *,
+.base-label *,
+#bases *,
+.panel-bases *{
+text-shadow:
+0 2px 4px rgba(0,0,0,.85) !important;
+}
+
+/* eliminar sombras de color heredadas */
+.zona-label,
+.base-label{
+filter:none !important;
+}
+
+
+/* ===== REDISEÑO DASHBOARD PREMIUM ESTILO BI ===== */
+/* Inspirado en dashboards corporativos: fondo oscuro, tarjetas limpias, morados/azules */
+
+body{
+background:
+linear-gradient(135deg,#15102F 0%,#24165A 45%,#0D47A1 100%) !important;
+color:#FFFFFF !important;
+}
+
+/* Grid tecnológico sutil */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+background-size:32px 32px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Paneles tipo dashboard */
+.panel,
+.card,
+.box,
+.contenedor,
+.panel-bases,
+.bases-container{
+background:
+linear-gradient(145deg,rgba(9, 70, 236, 0.96),rgba(0, 28, 238, 0.95)) !important;
+color:#25175A !important;
+border:1px solid rgba(255,255,255,.7);
+border-radius:20px !important;
+box-shadow:
+0 15px 35px rgba(0,0,0,.25);
+}
+
+/* Encabezados estilo BI */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3,#90CAF9) !important;
+color:#FFFFFF !important;
+border-radius:0 0 24px 24px;
+box-shadow:0 10px 30px rgba(47,47,228,.45);
+}
+
+.titulo{
+color:#FFFFFF !important;
+text-shadow:0 3px 8px rgba(0,0,0,.7) !important;
+}
+
+/* Tarjetas de bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+border-radius:14px !important;
+box-shadow:0 8px 18px rgba(47,47,228,.35);
+text-shadow:0 2px 5px rgba(0,0,0,.7) !important;
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#0D47A1,#2F2FE4) !important;
+color:#FFFFFF !important;
+border-radius:18px 18px 0 0;
+}
+
+/* Buscador */
+input,
+.buscar{
+background:#FFFFFF !important;
+color:#0D47A1 !important;
+border-radius:14px !important;
+border:2px solid #90CAF9 !important;
+}
+
+/* Lista de firmas tipo tarjeta BI */
+.item,
+.firma-item,
+.lista-item,
+.card-firma,
+#lista div{
+background:
+linear-gradient(145deg,#FFFFFF,#E3F2FD) !important;
+color:#0D47A1 !important;
+border-radius:14px !important;
+border-left:6px solid #2F2FE4 !important;
+box-shadow:0 6px 15px rgba(0,0,0,.15);
+}
+
+.item *,
+.firma-item *,
+.lista-item *,
+.card-firma *,
+#lista div *{
+color:#0D47A1 !important;
+text-shadow:none !important;
+}
+
+/* Estado pendiente */
+.pendiente{
+border-left-color:#DF301C !important;
+}
+
+/* Estado realizado */
+.realizada{
+border-left-color:#2196F3 !important;
+}
+
+/* Botones estilo dashboard */
+button{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+border-radius:14px !important;
+box-shadow:0 8px 20px rgba(47,47,228,.4);
+}
+
+/* Efecto tarjeta */
+.panel:hover,
+.card:hover{
+transform:translateY(-2px);
+transition:.25s ease;
+}
+
+/* =========================================
+   PANEL LATERAL DERECHO
+========================================= */
+
+#detalleLateral{
+    position:fixed;
+    top:0;
+    right:-430px;
+
+    width:400px;
+    height:100vh;
+
+    background:#0240c5;
+
+    z-index:9999;
+
+    box-shadow:-8px 0 30px rgba(0,0,0,.25);
+
+    transition:right .35s ease;
+
+    overflow-y:auto;
+
+    font-family:Arial, sans-serif;
+}
+
+/* Cuando se abre */
+#detalleLateral.activo{
+    right:0;
+}
+
+/* Botón cerrar */
+#cerrarDetalle{
+    position:absolute;
+
+    top:15px;
+    right:15px;
+
+    width:38px;
+    height:38px;
+
+    border:none;
+    border-radius:50%;
+
+    background:#111827 !important;
+    color:white !important;
+
+    font-size:25px;
+    line-height:30px;
+
+    cursor:pointer;
+
+    z-index:10;
+
+    box-shadow:0 4px 12px rgba(0,0,0,.3);
+}
+
+/* Título */
+.detalleTitulo{
+    padding:22px 20px 15px;
+
+    font-size:18px;
+    font-weight:bold;
+
+    color:#ffffff;
+}
+
+/* Imagen */
+.detalleImagen{
+    width:100%;
+    height:270px;
+
+    overflow:hidden;
+
+    background:#e5e7eb;
+}
+
+.detalleImagen img{
+    width:100%;
+    height:100%;
+
+    object-fit:cover;
+
+    display:block;
+}
+
+/* Contenido */
+.detalleContenido{
+    padding:20px;
+}
+
+/* Cada dato */
+.datoDetalle{
+    padding:16px 0;
+
+    border-bottom:1px solid #e5e7eb;
+
+    display:flex;
+    flex-direction:column;
+
+    gap:6px;
+}
+
+/* Títulos */
+.datoDetalle span{
+    font-size:11px;
+
+    font-weight:bold;
+
+    color:#ffffff;
+
+    letter-spacing:.5px;
+}
+
+/* Información */
+.datoDetalle strong{
+    font-size:15px;
+
+    color:#000000;
+
+    line-height:1.4;
+}
+
+/* Estado pendiente */
+.estadoPendiente{
+    color:#dc2626 !important;
+}
+
+/* Estado realizada */
+.estadoRealizada{
+    color:#16a34a !important;
+}
+
+/* Animación de la imagen */
+#detalleLateral.activo .detalleImagen img{
+    animation:entradaImagen .5s ease;
+}
+
+@keyframes entradaImagen{
+
+    from{
+        opacity:0;
+        transform:scale(1.05);
+    }
+
+    to{
+        opacity:1;
+        transform:scale(1);
+    }
+
+}
+
+/* En pantallas pequeñas */
+@media(max-width:700px){
+
+    #detalleLateral{
+        width:90%;
+        right:-95%;
+    }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+<img class="logo" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzYzIiBoZWlnaHQ9IjIwNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSIgb3ZlcmZsb3c9ImhpZGRlbiI+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTc3MyAtNDY0KSI+PHBhdGggZD0iTTYyLjgxMzEgODEuMjk0QzY0Ljk5MSA4MS44NDM3IDY2Ljg4MzcgODIuNDA4NCA2OC44MTIyIDgyLjc5MzggNzUuMjM2MyA4NC4wNzYzIDgxLjYwNzYgODMuMjkyNCA4Ny43MjM4IDgxLjM5MjIgOTUuNjk2OCA3OC45MTU5IDEwMy40OTggNzUuODg5OSAxMTEuMzY5IDczLjA4NjggMTEzLjA4OCA3Mi40NzQ4IDExNC43ODggNzEuODA0MiAxMTYuNDI5IDcwLjkwMTMgMTE1LjE5IDcxLjE1NDQgMTEzLjk1MyA3MS40MTUxIDExMi43MSA3MS42NTg4IDEwMi44NSA3My41ODkyIDkzLjAyMDIgNzUuNjk3MiA4My4xMjA2IDc3LjM4NzggNzUuODAzIDc4LjYzNjMgNjguMzkyOSA3OC44ODM4IDYxLjA5MDQgNzYuOTg5MiA1My40ODk2IDc1LjAxOTEgNDcuMTg0NCA3MS4wNDExIDQyLjUgNjQuNjY4IDQxLjcxOTkgNjMuNjA2NCA0MS4xMTM2IDYyLjQxODMgNDAuMjYzNiA2MS4wMjI0IDQzLjIwNjQgNjIuMTg3OSA0NS43NDEzIDYzLjM1MzMgNDguMzc2MyA2NC4yMDcxIDU3LjQ5NCA2Ny4xNjMyIDY2Ljg4NTYgNjcuNzc5IDc2LjMzMTkgNjYuNjcwMiA4NS43MzQ4IDY1LjU2NTIgOTUuMDg2NyA2NC4wMjc3IDEwNC40NjEgNjIuNjc3MSAxMDUuNDQzIDYyLjUzNTQgMTA2LjQyNCA2Mi4zNjkyIDEwNy4zNzYgNjIuMDc2NCAxMDQuODM5IDYyLjA3NjQgMTAyLjMgNjIuMDQ2MiA5OS43NjM1IDYyLjA4MjEgOTAuMTk0NCA2Mi4yMTQzIDgwLjYyNTMgNjIuNDkzOSA3MS4wNTYyIDYyLjQ3MzEgNjMuMDE3MSA2Mi40NTQyIDU1LjAzMjggNjEuNjI2OSA0Ny4yMTg0IDU5LjYxNTIgMzYuNjA4NiA1Ni44ODM5IDI4LjEyNzQgNTEuMzYwOCAyMy4zMDMyIDQxLjEyODcgMjMuMDE0MiA0MC41MTY3IDIyLjc2NjggMzkuODg3NyAyMi41MTkzIDM5LjI1ODcgMjIuMzc5NiAzOC45MDM2IDIyLjI4MTMgMzguNTMzMyAyMi4wNjQxIDM3Ljg2MjggMjIuODcyNiAzOC4zMzMxIDIzLjQ2MzggMzguNjYzNyAyNC4wNDM3IDM5LjAxNSAzMi4xMyA0My45MjIzIDQxLjA1MTIgNDYuNTM2NiA1MC4xODk3IDQ4LjU2OSA2My45OTU2IDUxLjY0MjIgNzcuOTg2NiA1MS44NDI0IDkyLjAyODYgNTEuMzQ1NyA5NC4xNDc5IDUxLjI3MDEgOTYuMjcxIDUxLjMzNDMgOTguMzkyMiA1MS4zMzQzIDk4LjQwMzYgNTEuMTkyNyA5OC40MTMgNTEuMDQ5MSA5OC40MjQzIDUwLjkwNzQgOTUuNjA2MSA1MC41MTQ2IDkyLjc4NzkgNTAuMTIxNyA4OS45Njk3IDQ5LjczMjYgNzcuMzM2OCA0Ny45ODkxIDY0LjY2NDIgNDYuNDg3NCA1Mi4wODQyIDQ0LjQyMSA0My4xNjMgNDIuOTU1MiAzNC40MjY5IDQwLjUxNjcgMjYuMzcwOCAzNi4xOTQ5IDE3Ljc1MzcgMzEuNTcyOCAxMS45MTMyIDI0LjcxOTkgOS43MjU4OSAxNS4wMjA0IDkuNjMxNDQgMTQuNjA0OSA5LjU4MjMzIDE0LjE3OTkgOS40NzI3OCAxMy41MjgyIDExLjQ1MjMgMTQuODIwMiAxMy4yMjQxIDE2LjAzNjcgMTUuMDUwNyAxNy4xNjI0IDI0LjEwMjIgMjIuNzMwOSAzMy45Njc5IDI2LjM3NjQgNDQuMDk0MiAyOS4zOTY4IDU4LjUxNTkgMzMuNjk3OCA3My4yNzU3IDM2LjA4MTYgODguMjU2NCAzNy4yNjIxIDk0LjQ3NjYgMzcuNzUxMyAxMDAuNjY4IDM4LjQ1NTkgMTA2LjQ3OSA0MS4wMzA0IDExMS4yNzEgNDMuMTUzNiAxMTUuMzQzIDQ2LjMxMzcgMTE5LjMwMiA0OS42NTcgMTI1LjIwOSA1NC42NDc0IDEzMS4wMDQgNTkuNzg5IDEzNy43NjIgNjMuNjQ4IDE0MC4wNjUgNjQuOTYyNyAxNDIuNDYyIDY2LjEwOTIgMTQ0LjkwNiA2Ny4zODA0IDE0NC41NCA2Ny41MzUzIDE0NC4yMDkgNjcuNzA3MiAxNDMuODYyIDY3LjgxNjggMTM1LjA5IDcwLjU4NzggMTI3LjA2NyA3NC45MjQ3IDExOS4xNjYgNzkuNTM1NCAxMTMuODY2IDgyLjYyNzYgMTA4LjYwNyA4NS44MTc5IDEwMy4xMzEgODguNTY4MSA5NC42NzExIDkyLjgxNDMgODUuNzcyNiA5NC4xNDQxIDc2LjU1NjcgOTEuMTg0MiA3MS4wMjk4IDg5LjQwODcgNjYuNDM3OSA4Ni4yNTA0IDYyLjgxODggODEuMjk1OVoiIGZpbGw9IiNGRkZGRkYiIHRyYW5zZm9ybT0ibWF0cml4KDEuMDAwOTIgMCAwIDEgNzczIDQ2NCkiLz48cGF0aCBkPSJNMTk3LjEyNiA2Ny41MzE2QzIwMS4wODUgNjUuMTQ3OCAyMDUuMzExIDYyLjk4NjkgMjA5LjEwMiA2MC4yMjcyIDIxNC4yOTEgNTYuNDUxMyAyMTkuMjcgNTIuMzYgMjI0LjEyMiA0OC4xNTM0IDIzMS42NTEgNDEuNjI5MiAyNDAuMzQ2IDM4LjI4MDIgMjUwLjIxNSAzNy41MjY2IDI2My42MjUgMzYuNTAyOCAyNzYuOTUxIDM0Ljg0NDMgMjkwLjAwMSAzMS40NSAzMDEuNTgyIDI4LjQzNzIgMzEyLjkzNCAyNC43ODIyIDMyMy40NyAxOC45ODUyIDMyNi4zNzcgMTcuMzg1MyAzMjkuMTM3IDE1LjUxOTEgMzMyLjA5MyAxMy42OTQ0IDMzMS40NDEgMTcuNzkxNCAzMjkuOTc5IDIxLjQ4MjMgMzI3LjgyIDI0Ljg5MzcgMzI0LjQ5OCAzMC4xNDY3IDMxOS44NDIgMzMuODkwNCAzMTQuMzM2IDM2LjY1OTYgMzA2LjQ4NSA0MC42MDU0IDI5OC4wOTcgNDIuOTY4NCAyODkuNTEyIDQ0LjM5NjQgMjc3Ljc5MyA0Ni4zNDU4IDI2NS45ODggNDcuNzczOCAyNTQuMjE4IDQ5LjQxMTQgMjUwLjU0NCA0OS45MjMzIDI0Ni44NjYgNTAuMzg4IDI0My4xODkgNTAuODczNCAyNDMuMTk0IDUwLjk5NjIgMjQzLjIgNTEuMTE5IDI0My4yMDQgNTEuMjQzNyAyNDQuNTA3IDUxLjI0MzcgMjQ1LjgxMiA1MS4yNDM3IDI0Ny4xMTYgNTEuMjQzNyAyNTUuNDI3IDUxLjIzMDQgMjYzLjc1MSA1MS41MzA4IDI3Mi4wNDMgNTEuMTI4NCAyODQuNTEgNTAuNTIyMSAyOTYuNjk5IDQ4LjE0NCAzMDguMzUyIDQzLjU0MjcgMzEyLjE0NSA0Mi4wNDQ4IDMxNS43MzUgNDAuMDM1IDMxOS40NzkgMzguMjMxMSAzMTguMjU3IDQxLjc5MTcgMzE2LjM4MyA0NS4wNjUxIDMxMy45NTYgNDguMDIxMiAzMDguODMgNTQuMjY0IDMwMS45OTIgNTcuNjQxMyAyOTQuMzI5IDU5LjU5NjMgMjg0LjM2MSA2Mi4xNDA3IDI3NC4xODcgNjIuNjYzOSAyNjMuOTY3IDYyLjUzMzYgMjU0Ljc4NSA2Mi40MTY0IDI0NS42MDMgNjIuMTYxNCAyMzYuNDIxIDYxLjk3MDcgMjM1LjcwNyA2MS45NTU2IDIzNC45OTEgNjEuOTY4OCAyMzQuMjQ5IDYyLjIwNDkgMjM2LjQyMSA2Mi41NDg3IDIzOC41ODkgNjIuOTE4OSAyNDAuNzY1IDYzLjIzNDMgMjQ4Ljg5MSA2NC40MTMgMjU2Ljk5NyA2NS44MTI3IDI2NS4xNTcgNjYuNjg1MyAyNzcuNTIxIDY4LjAwNzYgMjg5LjU3NCA2Ni43NDAxIDMwMC44OTIgNjEuMDg4NiAzMDAuOTIzIDYxLjA3MzQgMzAwLjk3NyA2MS4xMDc0IDMwMS4xNzggNjEuMTU0NyAyOTkuNzIxIDY0LjIyOTggMjk3LjYzMiA2Ni43NzYgMjk1LjE5IDY5LjAzNTEgMjg4Ljg0OSA3NC45MDIgMjgxLjI0MiA3Ny43MDUxIDI3Mi43MDEgNzguMTc5MiAyNjQuNDIgNzguNjQwMSAyNTYuMzExIDc3LjMzODcgMjQ4LjI0NSA3NS43MDg2IDI0MC45MDcgNzQuMjI1OCAyMzMuNTg5IDcyLjYyOTcgMjI2LjI2MiA3MS4wODY0IDIyNS44MiA3MC45OTM5IDIyNS4zNzEgNzAuOTI1OSAyMjQuODc0IDcxLjA0MTEgMjMxLjI2OCA3My40OTQ4IDIzNy42MiA3Ni4wNzEyIDI0NC4wNzMgNzguMzYwNiAyNDguMjk4IDc5Ljg1ODQgMjUyLjYyNCA4MS4xNTQyIDI1Ni45OTMgODIuMTU5MSAyNjQuMjA1IDgzLjgxNTcgMjcxLjQ0NyA4NC4wODU4IDI3OC44NTMgODEuMDc2OCAyNzYuOTc1IDgzLjk5NTEgMjc0Ljc2MyA4Ni4wMjM4IDI3Mi4yMjMgODcuNjcyOCAyNjIuODk3IDkzLjcyMSAyNTMuMDA3IDk0LjA1NTMgMjQyLjc3OSA5MC40MDAzIDIzNi41NDQgODguMTcxNCAyMzAuOTc5IDg0LjYzOTIgMjI1LjM1IDgxLjI0ODcgMjE2LjM5MyA3NS44NTQgMjA3LjI3NSA3MC43OTc0IDE5Ny4yNDkgNjcuNjEwOSAxOTcuMTIzIDY3LjU3MTIgMTk3LjAxOSA2Ny40NTYgMTk3LjEyNCA2Ny41MzE2WiIgZmlsbD0iI0ZGRkZGRiIgdHJhbnNmb3JtPSJtYXRyaXgoMS4wMDA5MiAwIDAgMSA3NzMgNDY0KSIvPjxwYXRoIGQ9Ik0xMDguOTgzIDEwMC4xMDRDMTE2LjM0IDEwOS40NzIgMTI1LjI3NyAxMTcuMDY0IDEzNS4xOTUgMTIzLjU4MiAxMjAuOTc2IDExNy45MjkgMTA4LjIzNSAxMTAuMDE1IDk3LjMyODggOTkuMDA0MiAxMDAuNDMyIDk3LjAzOTggMTAzLjM5NiA5NS4xNTg0IDEwNi4zNjcgOTMuMjg0NyAxMTUuMjc3IDg3LjY1OTYgMTI0LjE3NyA4Mi4wMjEyIDEzMy43NTYgNzcuNTYzNCAxNTAuNjcxIDY5LjY4ODcgMTY4LjI5MSA2Ni45MTU4IDE4Ni43MyA3MC4zNTU0IDE5Ny42NCA3Mi4zODk4IDIwNy43NDQgNzYuNjM3OSAyMTcuMjQ3IDgyLjI0MDMgMjI2LjIzNiA4Ny41NDA2IDIzNS4wMjcgOTMuMTc1MSAyNDMuOTA1IDk4LjY2MjMgMjQ0LjAyNiA5OC43MzYgMjQ0LjE0MyA5OC44MTUzIDI0NC4zOSA5OC45NzU5IDIzMy40NDggMTA5Ljk5NiAyMjAuNzEzIDExNy45NSAyMDYuNDU5IDEyMy41OTggMjE2LjM5NSAxMTcuMDcxIDIyNS4zMjcgMTA5LjQ0MiAyMzIuODU4IDk5Ljk2IDIzMC4wMzUgOTcuOTI1NyAyMjcuMzQ5IDk1Ljg3NDMgMjI0LjU0NyA5My45OTQ5IDIxNC45NSA4Ny41NTM4IDIwNC44MTggODIuMTcyMyAxOTMuNzE1IDc4Ljc4MzcgMTc2LjA4IDczLjQwMjIgMTU4Ljc2MyA3NC45NTExIDE0MS42ODcgODEuMjgyNyAxMzAuNDQ5IDg1LjQ0OTYgMTIwLjIxNSA5MS40MjQxIDExMC42NjYgOTguNjE4OSAxMTAuMjAzIDk4Ljk2ODMgMTA5Ljc1NCA5OS4zMzQ4IDEwOS4zMDYgOTkuNzAzMSAxMDkuMTk5IDk5Ljc5MTkgMTA5LjEyNSA5OS45MjIyIDEwOC45ODEgMTAwLjEwMloiIGZpbGw9IiNGRkZGRkYiIHRyYW5zZm9ybT0ibWF0cml4KDEuMDAwOTIgMCAwIDEgNzczIDQ2NCkiLz48cGF0aCBkPSJNMTk1LjMgNTUuMTI1M0MxOTYuNDkgNTcuMjAxMiAxOTcuNjA2IDU5LjE0ODcgMTk4LjgwOSA2MS4yNDkxIDE5NC42NjEgNjEuNzExOSAxOTEuMzEgNjAuMTM2NiAxODcuNzQ4IDU4LjQwODIgMTg4LjgzNiA2MC4zNzI3IDE4OS44MTggNjIuMTUwMSAxOTAuOCA2My45Mjc2IDE5MC43MjMgNjQuMDc0OSAxOTAuNjQ3IDY0LjIyMjIgMTkwLjU3IDY0LjM2OTYgMTg3Ljc5IDYzLjU3MjQgMTg1LjAwNyA2Mi43NzUzIDE4Mi4xNzYgNjEuOTY1IDE4Mi40NDQgNjIuNzA1NCAxODIuNzQyIDYzLjUzNjYgMTgzLjAxNiA2NC4yOTIxIDE3Ny43NTYgNjQuMTU5OSAxNzIuNTE2IDYzLjc2NyAxNjcuMjk5IDYzLjk2OTEgMTYyLjA2NSA2NC4xNzEyIDE1Ni44NTMgNjQuOTY2NCAxNTEuNzA0IDY1LjQ5MzQgMTUzLjI5NyA2Mi41MjAzIDE1NC45NTEgNTkuNDMzOSAxNTYuNjM0IDU2LjI4ODkgMTU2LjkzNiA1Ni41MDIzIDE1Ny40MjggNTYuODQ5OSAxNTcuOTIxIDU3LjE5OTMgMTU4LjA0OSA1Ny4xNjE2IDE1OC4xNzcgNTcuMTIzOCAxNTguMzA2IDU3LjA4NzkgMTU4LjAwMiA1NS43ODA4IDE1Ny44MDMgNTQuNDM0IDE1Ny4zMzkgNTMuMTg3MyAxNTcuMTc2IDUyLjc1MjkgMTU2LjM3NCA1Mi4zNDMgMTU1LjgzMyA1Mi4yOTk2IDE1MC45MzUgNTEuOTE4IDE0Ni4wNzcgNTIuMTI1OCAxNDEuMzQgNTMuNTg0IDEzOS4zNzQgNTQuMTkwMyAxMzguNTA1IDU1Ljc4ODMgMTM3Ljg4OSA1Ny41NzkgMTM0Ljc5MSA1Ni4yMzc5IDEzMy4xMTggNTEuNzk5IDEzNC40MjEgNDguNDQwNiAxMzQuNjMxIDQ3LjkwMjIgMTM0Ljg0NCA0Ny4zMzkzIDEzNS4xOCA0Ni44ODAzIDE0MS4yMTkgMzguNTk1NyAxNDguMDQ3IDMxLjI0NzkgMTU4LjM4OSAyOC40MjIxIDE3Mi42NjEgMjQuNTI1MyAxODQuOTc5IDI4LjM3NDkgMTk1LjcxNSAzOC4xNTE4IDE5Ni4xMzcgMzguNTM1MiAxOTYuNDc4IDM5LjAwMTggMTk3LjAzOCAzOS42MzQ2IDE5NC43NzUgMzkuNzcyNCAxOTIuNzQ4IDM5Ljg5NTIgMTkwLjcyMyA0MC4wMTggMTk2LjggNDQuNjk4NyAyMDEuODMzIDUwLjA4OTYgMjA1LjM4MSA1Ni43NzA2IDIwNS4zMTcgNTYuODk5IDIwNS4yNTIgNTcuMDI3NCAyMDUuMTkgNTcuMTU1OSAyMDEuOTE3IDU2LjQ4MzQgMTk4LjY0MyA1NS44MTEgMTk1LjI5NiA1NS4xMjM0Wk0xOTkuMDU1IDUyLjgyNDdDMTk5LjE0OSA1Mi43MjgzIDE5OS4yNDYgNTIuNjMwMSAxOTkuMzQgNTIuNTMzOCAxOTcuMTI2IDUwLjE4NzggMTk1LjAzOSA0Ny43MDU4IDE5Mi42NjcgNDUuNTMzNiAxOTAuMjczIDQzLjM0MjQgMTg3LjU5OSA0MS40NTkyIDE4NC43NzcgMzkuMjI2NiAxODcuMDEzIDM4LjYwMTMgMTg5LjAwNCAzOC4wNDQxIDE5MS4wMDEgMzcuNDg1IDE5MC45MzMgMzcuMzk2MiAxOTAuODg5IDM3LjMwMzcgMTkwLjgxNyAzNy4yNTA4IDE3OC41NzkgMjguNDQxIDE2My40NDYgMjkuMjY4MyAxNTEuMzQgMzcuNjIyOSAxNTAuMjk5IDM4LjM0MjYgMTUwLjQzMSAzOS4xNjYxIDE1MS4zMTkgMzkuNjY2NyAxNTIuMTM1IDQwLjEyNTcgMTUzLjE5OCA0MC40MDUyIDE1NC4xMjYgNDAuMzQyOSAxNTUuMTUgNDAuMjczIDE1Ni4xMzYgMzkuNzAwNyAxNTcuMTUgMzkuMzkwOSAxNjAuMDA4IDM4LjUyMDEgMTYyLjg2MiAzNy42MzYxIDE2NS43NDEgMzYuODQwOSAxNjYuNTExIDM2LjYyNzQgMTY3LjM2NSAzNi43MTgxIDE2OC4zNTcgMzYuNjU5NiAxNjguMTQ3IDM2Ljk0NjcgMTY4LjEyNiAzNi45OTU4IDE2OC4wOSAzNy4wMjAzIDE2Ni4zNTggMzguMjUxOSAxNjQuODYgMzkuMzE3MiAxNjQuMzI4IDQxLjg1NTkgMTYzLjQ1NSA0Ni4wMTkgMTU4LjcyMyA0Ni43NzgzIDE1NS41MTIgNDMuNjQ4NCAxNTUuMDcgNDMuMjE3OCAxNTQuNDU2IDQyLjc1NjkgMTUzLjg4NCA0Mi43MDIxIDE1Mi4zMiA0Mi41NTQ4IDE1MS4wMjQgNDIuMDYxOCAxNDkuODkzIDQwLjkyMDkgMTQ4LjU5MyAzOS42MDgxIDE0Ny4yNjIgMzkuNDY4MyAxNDUuNzE4IDQwLjUzOTMgMTQzLjY1OSA0MS45NjczIDE0MS41ODIgNDMuNDE5OSAxMzkuNzU3IDQ1LjEyMzcgMTM4LjQ4IDQ2LjMxNTYgMTM3LjQ2NiA0Ny44NjYzIDEzNi42MSA0OS40MDk2IDEzNS42NzMgNTEuMTAwMSAxMzYuMjA2IDUyLjc5MDcgMTM3LjAwNSA1NC4wOTU5IDEzOC40MzkgNTMuMTcwMyAxMzkuNjUxIDUyLjA1NTkgMTQxLjA4MSA1MS41MTk0IDE0Ny42IDQ5LjA3NTIgMTU0LjI2OSA0OC43MzE0IDE2MC45OTkgNTAuNjE4NCAxNjEuNTk2IDUwLjc4NjYgMTYyLjE2NyA1MS4yNTg4IDE2Mi42MDcgNTEuNzI1MyAxNjMuNjk3IDUyLjg4MTMgMTY0LjYwMiA1NC4yMjgxIDE2NS43NjUgNTUuMjk3MiAxNjkuMzY1IDU4LjYwMjggMTczLjY1OSA2MC41NTAyIDE3OC41NDUgNjEuNTgzNCAxNzcuODk2IDU5LjU5MDcgMTc3LjMwMSA1Ny43NjQxIDE3Ni43MDYgNTUuOTM3NiAxNzYuODIxIDU1Ljg3MTQgMTc2LjkzNCA1NS44MDcyIDE3Ny4wNDkgNTUuNzQxMSAxNzkuNTQ1IDU2Ljg4MDEgMTgyLjA0IDU4LjAyMSAxODQuNzE4IDU5LjI0MzEgMTgzLjg1MSA1Ny4wOTU0IDE4My4xMTEgNTUuMjU1NyAxODIuMjE0IDUzLjAzMjQgMTg1Ljk1NyA1NC41NDU0IDE4OS4yNDIgNTUuODcxNCAxOTIuODg2IDU3LjM0MjkgMTkxLjQxOCA1NC45Mjg5IDE5MC4xNTYgNTIuODUzIDE4OC44OTUgNTAuNzc5IDE4OC45ODEgNTAuNjQ2OCAxODkuMDY4IDUwLjUxNDYgMTg5LjE1MyA1MC4zODIzIDE5Mi40NTMgNTEuMTk2NCAxOTUuNzUzIDUyLjAxMDYgMTk5LjA1MyA1Mi44MjQ3Wk0xNTYuMjYyIDQyLjAwODlDMTU3Ljc5NiA0NC4wMDM2IDE1OS40MDEgNDQuNTYyNyAxNjAuODA3IDQzLjg4MDggMTYyLjI3MyA0My4xNzI0IDE2Mi45MzIgNDEuNTgzOSAxNjIuNDEgMzkuODMyOSAxNjEuODkzIDQwLjA5MTcgMTYxLjM5MiA0MC4zNDEgMTYwLjg5IDQwLjU5MDMgMTYxLjAwMSA0MC42NzUzIDE2MS4xMTEgNDAuNzYwMyAxNjEuMjIyIDQwLjg0MzQgMTYwLjgzMSA0MS41MjcyIDE2MC41ODggNDIuNTE4OSAxNjAuMDAyIDQyLjgwMDMgMTU5LjQ5NCA0My4wNDU5IDE1OC42MDEgNDIuNDczNiAxNTcuODcxIDQyLjI5MDMgMTU3LjQ2NSA0Mi4xODgzIDE1Ny4wNDQgNDIuMTQxMSAxNTYuMjYyIDQyLjAwN1oiIGZpbGw9IiNGRkZGRkYiIHRyYW5zZm9ybT0ibWF0cml4KDEuMDAwOTIgMCAwIDEgNzczIDQ2NCkiLz48cGF0aCBkPSJNMTk2LjYxOCAxMjguNjU4QzE5Mi42MDEgMTMxLjQ3NiAxODguMTkyIDEzMy4zODIgMTgzLjQ4NSAxMzQuNTkxIDE3NC44MDkgMTM2LjgxOCAxNjYuMjQ3IDEzNi42OTcgMTU3LjkxMSAxMzMuMTQ0IDE0Ny40NjcgMTI4LjY5MiAxNDAuNTI0IDEyMC44MyAxMzYuMjU3IDExMC40ODEgMTM0LjEyNiAxMDUuMzEzIDEzMi44NTkgOTkuOTEyOCAxMzIuMzQ5IDk0LjMzMTEgMTMyLjIyNiA5Mi45ODA2IDEzMi41MTkgOTIuMTMyNCAxMzMuNzUgOTEuMzg0NCAxMzguNjAxIDg4LjQzNCAxNDMuNzIgODYuMTI1OCAxNDkuMTEzIDg0LjQ2OTIgMTQ3LjczNCA4Ni43IDE0Ni4xNjIgODguNzg5MSAxNDUuMDU1IDkxLjEwMTEgMTM1Ljg0MyAxMTAuMzY0IDE0OC41NTQgMTI5LjY0IDE2Ni40NTMgMTMyLjk5MyAxNzYuMjY1IDEzNC44MzEgMTg1LjY4NyAxMzMuMTg0IDE5NC44MiAxMjkuNDMgMTk1LjQyMyAxMjkuMTgzIDE5Ni4wMTkgMTI4LjkxNyAxOTYuNjE4IDEyOC42NThaIiBmaWxsPSIjRkZGRkZGIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjAwMDkyIDAgMCAxIDc3MyA0NjQpIi8+PHBhdGggZD0iTTIxNC41NjEgMTUxLjg5NUMyMTUuODg3IDE0OC45NDEgMjE3LjE1NCAxNDYuMzA0IDIxOC4yNTIgMTQzLjU5NyAyMTguNzk5IDE0Mi4yNDUgMjE5LjUxNSAxNDEuNTk1IDIyMS4wMjggMTQxLjgwOCAyMjIuMDE0IDE0MS45NDggMjIzLjAzNCAxNDEuODM1IDIyNC4xNjQgMTQxLjgzNUwyMjQuMTY0IDE2MS43MzIgMjE5Ljg5NyAxNjEuNzMyIDIxOS44OTcgMTQ5Ljk2M0MyMTkuNzg5IDE0OS45NCAyMTkuNjgyIDE0OS45MTUgMjE5LjU3NiAxNDkuODkzIDIxOC41OTUgMTUyLjAxIDIxNy41MzQgMTU0LjA5NiAyMTYuNjY1IDE1Ni4yNTggMjE2LjE4MSAxNTcuNDYgMjE1LjQ4NiAxNTcuNzM0IDIxNC4yNjYgMTU3Ljc0NSAyMTMuMDk5IDE1Ny43NTQgMjEyLjcwNiAxNTcuMjIyIDIxMi4yOTggMTU2LjMwNCAyMTEuMzI3IDE1NC4xMTYgMjEwLjI1IDE1MS45NzQgMjA5LjA0NyAxNDkuNDU4TDIwOS4wNDcgMTYxLjcyNSAyMDQuNzYxIDE2MS43MjUgMjA0Ljc2MSAxNDEuODVDMjA2LjM2OSAxNDEuODUgMjA3Ljk1IDE0MS43ODQgMjA5LjUxNCAxNDEuOTAzIDIwOS44NTkgMTQxLjkyOSAyMTAuMjUgMTQyLjU2NiAyMTAuNDU2IDE0MyAyMTEuODA3IDE0NS44NiAyMTMuMTEyIDE0OC43NDIgMjE0LjU2MSAxNTEuODk3WiIgZmlsbD0iI0ZGRkZGRiIgdHJhbnNmb3JtPSJtYXRyaXgoMS4wMDA5MiAwIDAgMSA3NzMgNDY0KSIvPjxwYXRoIGQ9Ik04My4xODY3IDE0OS44NCA4My4xODY3IDE2MS43MjEgNzguOTA0NiAxNjEuNzIxIDc4LjkwNDYgMTQxLjg0NkM4MC4yODkxIDE0MS44NDYgODEuNjMwMiAxNDEuNzY5IDgyLjk1MjQgMTQxLjg5NSA4My4zMzIxIDE0MS45MzEgODMuNzQ5NiAxNDIuNTAyIDgzLjk5MTMgMTQyLjkxOSA4NS45Mjc0IDE0Ni4yNiA4Ny44MjM5IDE0OS42MjUgODkuNzM3MyAxNTIuOTc5IDg5Ljg0MzEgMTUzLjE2NCA4OS45ODg2IDE1My4zMjcgOTAuMzA5NyAxNTMuNzY1TDkwLjMwOTcgMTQxLjk2MSA5NC42MDEyIDE0MS45NjEgOTQuNjAxMiAxNjEuODYxQzkzLjI3NzEgMTYxLjg2MSA5MS45ODcgMTYxLjkzOCA5MC43MTc3IDE2MS44MTUgOTAuMzIxIDE2MS43NzggODkuODY1OCAxNjEuMjY0IDg5LjYyNCAxNjAuODU2IDg3LjY4NzkgMTU3LjU3MSA4NS43OTcxIDE1NC4yNTggODMuODkxMiAxNTAuOTU0IDgzLjczNjMgMTUwLjY4OCA4My41NjA3IDE1MC40MzEgODMuMTg2NyAxNDkuODQyWiIgZmlsbD0iI0ZGRkZGRiIgdHJhbnNmb3JtPSJtYXRyaXgoMS4wMDA5MiAwIDAgMSA3NzMgNDY0KSIvPjxwYXRoIGQ9Ik0xNzIuNzYgOTEuOTAyQzE2My4yMTUgOTMuMDk1OCAxNTQuNzQzIDk3LjQwMDYgMTQ1Ljg4NiAxMDEuMDIzIDE0Ni4yODcgOTcuMTcwMSAxNDcuNjg3IDkzLjc5MjggMTQ5Ljc0MiA5MC42NTUzIDE1Mi4xNzYgODYuOTM2MSAxNTUuNDM3IDg0LjEyNTQgMTU5LjM1OCA4Mi4wNzk4IDE1OS43MzggODEuODgxNCAxNjAuNDU5IDgxLjgwOTcgMTYwLjc0NCA4Mi4wMzQ0IDE2NC43MzQgODUuMTU2OCAxNjguNjc0IDg4LjM0MTQgMTcyLjYyMiA5MS41MTY3IDE3Mi42OCA5MS41NjM5IDE3Mi42ODIgOTEuNjc5MSAxNzIuNzU4IDkxLjkwMzlaIiBmaWxsPSIjRkZGRkZGIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjAwMDkyIDAgMCAxIDc3MyA0NjQpIi8+PHBhdGggZD0iTTI1NS44MzkgMTUzLjg2MUMyNTcuMjYzIDE1Ni41MDYgMjU4LjYzIDE1OS4wNDQgMjYwLjE0NyAxNjEuODU5IDI1OC40NzIgMTYxLjg1OSAyNTcuMDQ4IDE2MS45MTcgMjU1LjYzMyAxNjEuODE3IDI1NS4yODcgMTYxLjc5MyAyNTQuODY2IDE2MS4zMDcgMjU0LjY2OSAxNjAuOTMzIDI1My43NTEgMTU5LjE4IDI1Mi44NzEgMTU3LjQwNSAyNTIuMDM2IDE1NS42MDkgMjUxLjY3NiAxNTQuODMyIDI1MS4yMzUgMTU0LjQzNiAyNTAuMTg3IDE1NC44NjFMMjUwLjE4NyAxNjEuNzcyIDI0NS43NiAxNjEuNzcyIDI0NS43NiAxNDEuODU2QzI0OS4wNjcgMTQyLjA2NyAyNTIuNDQyIDE0MS4yOTMgMjU1LjcxNCAxNDIuNDc3IDI1Ny45MjQgMTQzLjI3NiAyNTkuMTE4IDE0NC45NTcgMjU5LjI5MiAxNDcuMzAzIDI1OS40NzMgMTQ5Ljc0OSAyNTguOTYxIDE1MS45MzEgMjU2LjcxNyAxNTMuMzU5IDI1Ni40NzUgMTUzLjUxMiAyNTYuMjIgMTUzLjY0NCAyNTUuODM3IDE1My44NjNaTTI1MC4xNjMgMTQ1LjcyNEMyNTAuMTYzIDE0Ni45NDYgMjUwLjE2MyAxNDguMDAyIDI1MC4xNjMgMTQ5LjA2IDI1MC4xNjMgMTUxLjE0OSAyNTAuMzk1IDE1MS4zNDIgMjUyLjUwMyAxNTAuOTkgMjU0LjAwNSAxNTAuNzM5IDI1NC43MzQgMTQ5Ljg1MyAyNTQuNzM2IDE0OC4yNzYgMjU0LjczNiAxNDYuNzkzIDI1NC4wMjIgMTQ1LjkyOCAyNTIuNTIyIDE0NS43MzkgMjUxLjgxOSAxNDUuNjUgMjUxLjA5OCAxNDUuNzI0IDI1MC4xNjMgMTQ1LjcyNFoiIGZpbGw9IiNGRkZGRkYiIHRyYW5zZm9ybT0ibWF0cml4KDEuMDAwOTIgMCAwIDEgNzczIDQ2NCkiLz48cGF0aCBkPSJNMTE2Ljk3MSAxNTQuODgxIDExNi45NzEgMTYxLjc3NCAxMTIuNjIzIDE2MS43NzQgMTEyLjYyMyAxNDEuODJDMTE1Ljk5MyAxNDIuMDkyIDExOS40MjkgMTQxLjIxOSAxMjIuNzIxIDE0Mi41MjYgMTI2LjcxNCAxNDQuMTEzIDEyNy40NTEgMTUwLjM3NCAxMjQuMDE3IDE1My4wNCAxMjMuNjc3IDE1My4zMDIgMTIzLjMwMyAxNTMuNTE5IDEyMi44MDYgMTUzLjg1IDEyNC4xNyAxNTYuNDMyIDEyNS41MyAxNTkuMDA3IDEyNy4wMzcgMTYxLjg1OSAxMjUuNDEzIDE2MS44NTkgMTIzLjk5IDE2MS45MjcgMTIyLjU4MyAxNjEuODE0IDEyMi4yMDIgMTYxLjc4MyAxMjEuNzQ1IDE2MS4yNjIgMTIxLjUyOSAxNjAuODU2IDEyMC42MDIgMTU5LjExMSAxMTkuNzIgMTU3LjMzOSAxMTguODg5IDE1NS41NDYgMTE4LjUxMSAxNTQuNzMyIDExOC4wMTIgMTU0LjQ3NSAxMTYuOTczIDE1NC44ODNaTTExNy4wNzkgMTUwLjk3NUMxMTguNjQ5IDE1MS4wMzcgMTIwLjE4NiAxNTEuMzEzIDEyMS4yMTYgMTQ5Ljg1OSAxMjEuOTE2IDE0OC44NzEgMTIxLjkxMSAxNDcuNzI2IDEyMS4yMDIgMTQ2Ljc0MiAxMjAuMTQ3IDE0NS4yNzMgMTE4LjYgMTQ1LjY5IDExNy4wNzkgMTQ1LjcwOUwxMTcuMDc5IDE1MC45NzdaIiBmaWxsPSIjRkZGRkZGIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjAwMDkyIDAgMCAxIDc3MyA0NjQpIi8+PHBhdGggZD0iTTE4My4xMjYgOTcuODk1NEMxNzYuMzU0IDkyLjAzMjMgMTY5LjcgODYuMjY5MyAxNjIuOTc5IDgwLjQ1MTYgMTY3Ljk1NCA3OC42NDk2IDE3My4wMzQgNzguMzY0MyAxNzguMTgxIDc5LjUzMzYgMTc5LjgxOCA3OS45MDU3IDE4MS40MDUgODAuNTI1MiAxODIuOTggODEuMTIwMiAxODMuMzM2IDgxLjI1NDMgMTgzLjggODEuNzcgMTgzLjc4OSA4Mi4wOTY4IDE4My42MDggODcuMzk1MSAxODMuMzU2IDkyLjY4OTcgMTgzLjEyNiA5Ny44OTU0WiIgZmlsbD0iI0ZGRkZGRiIgdHJhbnNmb3JtPSJtYXRyaXgoMS4wMDA5MiAwIDAgMSA3NzMgNDY0KSIvPjxwYXRoIGQ9Ik0xODQuNzEzIDE2MS44NDZDMTg2LjgwNyAxNTUuMjg5IDE4OC44MDQgMTQ4Ljk5IDE5MC44NyAxNDIuNzExIDE5MC45OTUgMTQyLjMzIDE5MS42NzcgMTQyLjEzMSAxOTIuMTAyIDE0MS44NTIgMTkyLjEzNiAxNDEuODI5IDE5Mi4xOTYgMTQxLjg0OCAxOTIuMjQ1IDE0MS44NDggMTk1LjA3MSAxNDEuNzY2IDE5Ni45MTcgMTQzLjA3IDE5Ny43OCAxNDUuNzYgMTk5LjIxOSAxNTAuMjcxIDIwMC42NDcgMTU0Ljc4MyAyMDIuMDczIDE1OS4yOTggMjAyLjMxNyAxNjAuMDcgMjAyLjUyNSAxNjAuODU0IDIwMi44MTIgMTYxLjg1NyAyMDEuMjkxIDE2MS44NTcgMTk5Ljk1IDE2MS45MjcgMTk4LjYyOCAxNjEuODEgMTk4LjI4MiAxNjEuNzggMTk3LjgzNSAxNjEuMjE1IDE5Ny42OTUgMTYwLjgwNyAxOTYuNjc5IDE1Ny44MzkgMTk2LjY5OSAxNTcuODMyIDE5My41NDUgMTU3Ljg3IDE5MC42MyAxNTcuOTA1IDE5MC41ODMgMTU3Ljg5MiAxODkuNzk2IDE2MC43NTQgMTg5LjU1MiAxNjEuNjQ0IDE4OS4xNTUgMTYxLjkxMiAxODguMjkyIDE2MS44NjEgMTg3LjE5MSAxNjEuNzk3IDE4Ni4wODQgMTYxLjg0NiAxODQuNzEzIDE2MS44NDZaTTE5MS42MzUgMTUzLjk5NCAxOTUuODcyIDE1My45OTRDMTk1LjE3NyAxNTEuNjE0IDE5NC41MTggMTQ5LjM1OCAxOTMuODYgMTQ3LjEwMyAxOTMuNzcgMTQ3LjEyIDE5My42NzkgMTQ3LjEzNyAxOTMuNTg4IDE0Ny4xNTYgMTkyLjk1OCAxNDkuMzY0IDE5Mi4zMjkgMTUxLjU3MiAxOTEuNjM1IDE1My45OTRaIiBmaWxsPSIjRkZGRkZGIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjAwMDkyIDAgMCAxIDc3MyA0NjQpIi8+PHBhdGggZD0iTTE4NC41NDQgMTA4LjU2NEMxODUuMTIyIDk5LjkyMDMgMTg1LjY4NSA5MS40OTk3IDE4Ni4yNzMgODIuNzE4MiAxODcuNzM1IDgzLjgzODMgMTg5LjEzOCA4NC43NDUgMTkwLjM0MSA4NS44NjUxIDE5My44MDQgODkuMDg5NCAxOTYuMjQyIDkyLjk2OTIgMTk3LjU0NCA5Ny41NTM2IDE5Ny44MDQgOTguNDcxNiAxOTcuNjk1IDk4Ljk5MSAxOTYuODU2IDk5LjU4NiAxOTMuMjM5IDEwMi4xNjIgMTg5LjY5NCAxMDQuODM5IDE4Ni4xMiAxMDcuNDcyIDE4NS42MzYgMTA3LjgyOSAxODUuMTMgMTA4LjE1OCAxODQuNTQ0IDEwOC41NjJaIiBmaWxsPSIjRkZGRkZGIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjAwMDkyIDAgMCAxIDc3MyA0NjQpIi8+PHBhdGggZD0iTTE0NS45NyAxNjEuODY4QzE0NC40OTEgMTYxLjg2OCAxNDMuMTk1IDE2MS45NTMgMTQxLjkyMiAxNjEuODE1IDE0MS41NDYgMTYxLjc3NCAxNDEuMDcyIDE2MS4xNTYgMTQwLjkyOCAxNjAuNzA5IDEzOS45OTUgMTU3LjgzNCAxNDAuMDIgMTU3LjgyNiAxMzYuOTg0IDE1Ny44NTQgMTMzLjg3MSAxNTcuODg1IDEzMy44NDEgMTU3Ljg3NSAxMzMuMDE0IDE2MC44MTIgMTMyLjc4OSAxNjEuNjEgMTMyLjQzOCAxNjEuOTEyIDEzMS42MTQgMTYxLjg2NSAxMzAuNTEzIDE2MS44IDEyOS40MDQgMTYxLjg0OSAxMjguMDc2IDE2MS44NDkgMTI4LjQ1IDE2MC40OTkgMTI4Ljc1IDE1OS4yNjUgMTI5LjEzMiAxNTguMDU1IDEzMC42OTQgMTUzLjA4MyAxMzIuMzA1IDE0OC4xMjkgMTMzLjgzOSAxNDMuMTQ4IDEzNC4xNDMgMTQyLjE2IDEzNC41OTMgMTQxLjgwNSAxMzUuNjUxIDE0MS44MDYgMTM5LjczOCAxNDEuODEgMTM5Ljc0OCAxNDEuNzY1IDE0MC45NjYgMTQ1LjYzMSAxNDIuNDQ1IDE1MC4zMjUgMTQzLjkwNSAxNTUuMDI3IDE0NS4zNjcgMTU5LjcyNiAxNDUuNTYzIDE2MC4zNjEgMTQ1LjcyOCAxNjEuMDA1IDE0NS45NyAxNjEuODY4Wk0xMzcuMDc3IDE0Ny4wNDZDMTM2Ljk5IDE0Ny4wNDEgMTM2LjkwMSAxNDcuMDMzIDEzNi44MTQgMTQ3LjAyNyAxMzYuMTU5IDE0OS4zMDcgMTM1LjUwMSAxNTEuNTg1IDEzNC44MSAxNTMuOTlMMTM5LjA2OCAxNTMuOTlDMTM4LjM4NCAxNTEuNjA4IDEzNy43MyAxNDkuMzI4IDEzNy4wNzcgMTQ3LjA0NloiIGZpbGw9IiNGRkZGRkYiIHRyYW5zZm9ybT0ibWF0cml4KDEuMDAwOTIgMCAwIDEgNzczIDQ2NCkiLz48cGF0aCBkPSJNMjQzLjkzMSAxNjEuODQ4QzI0Mi40MDcgMTYxLjg0OCAyNDEuMDY2IDE2MS45MTcgMjM5Ljc0IDE2MS43OTggMjM5LjQwMiAxNjEuNzY4IDIzOC45NjUgMTYxLjE4OCAyMzguODM1IDE2MC43NzggMjM3LjkgMTU3Ljg0NyAyMzcuOTIxIDE1Ny44NDMgMjM0Ljg3NCAxNTcuODY0IDIzMy45MTQgMTU3Ljg3IDIzMi45NTMgMTU3Ljg2NCAyMzEuODgyIDE1Ny44NjQgMjMxLjQ5OCAxNTkuMjAxIDIzMS4xMyAxNjAuNDc2IDIzMC43NjIgMTYxLjc2NEwyMjYuMDYyIDE2MS43NjRDMjI4LjE2NSAxNTUuMDYxIDIzMC4yMjUgMTQ4LjQ5OSAyMzIuMjU0IDE0Mi4wMjkgMjMyLjQ0MSAxNDEuOTU0IDIzMi40ODQgMTQxLjkyNSAyMzIuNTMgMTQxLjkyIDIzNy42NjQgMTQxLjQgMjM3LjY3OSAxNDEuMzk3IDIzOS4xNTQgMTQ2LjE3NyAyNDAuNzQzIDE1MS4zMjYgMjQyLjI5OSAxNTYuNDg3IDI0My45MjkgMTYxLjg0NlpNMjM0Ljk2MSAxNDYuNjc4QzIzNC4xOTYgMTQ5LjM4MyAyMzMuNTUyIDE1MS42NTcgMjMyLjg5NiAxNTMuOTczTDIzNy4wNzQgMTUzLjk3M0MyMzYuMzc3IDE1MS41NjQgMjM1LjcyNCAxNDkuMzEzIDIzNC45NjEgMTQ2LjY3OFoiIGZpbGw9IiNGRkZGRkYiIHRyYW5zZm9ybT0ibWF0cml4KDEuMDAwOTIgMCAwIDEgNzczIDQ2NCkiLz48cGF0aCBkPSJNMjc4LjUzOSAxNjEuNzg3IDI3My44NjYgMTYxLjc4N0MyNzMuNTg3IDE2MC44MTggMjczLjM3NSAxNTkuNzc5IDI3Mi45NjkgMTU4LjgyNSAyNzIuNzk3IDE1OC40MjMgMjcyLjIyMyAxNTguMTgzIDI3MS44MTEgMTU3LjkgMjcxLjcxMSAxNTcuODMyIDI3MS41MjggMTU3Ljg4NyAyNzEuMzgyIDE1Ny44ODcgMjY5Ljg4NCAxNTcuODg4IDI2OC4xMTEgMTU3LjQwMSAyNjYuOTc0IDE1OC4wNDMgMjY1Ljk5MSAxNTguNTk3IDI2NS43MzYgMTYwLjQzNyAyNjUuMTI2IDE2MS43ODNMMjYwLjc4OSAxNjEuNzgzQzI2MS40MzkgMTU5LjY1NSAyNjIuMDQyIDE1Ny42MjggMjYyLjY3NSAxNTUuNjEgMjYzLjk5MSAxNTEuNDE3IDI2NS4zNDcgMTQ3LjIzNSAyNjYuNjMgMTQzLjAzIDI2Ni44OTggMTQyLjE1MiAyNjcuMjY4IDE0MS43NTcgMjY4LjIzMiAxNDEuODM3IDI2OS42MTggMTQxLjk1MiAyNzEuMzQ2IDE0MS40NTUgMjcyLjMxMiAxNDIuMTE4IDI3My4xOTggMTQyLjcyNCAyNzMuMjk0IDE0NC41MTUgMjczLjY5NCAxNDUuNzk4IDI3NS4xNDcgMTUwLjQ1MiAyNzYuNTg2IDE1NS4xMSAyNzguMDIgMTU5Ljc3IDI3OC4yMDEgMTYwLjM2MSAyNzguMzMgMTYwLjk2OSAyNzguNTM5IDE2MS43ODdaTTI2Ny41NSAxNTMuOTU2IDI3MS42OTQgMTUzLjk1NkMyNzEuMDMzIDE1MS41NDQgMjcwLjQxMSAxNDkuMjc5IDI2OS43OSAxNDcuMDE0IDI2OS43MDMgMTQ3LjAyNyAyNjkuNjE4IDE0Ny4wNDEgMjY5LjUzMSAxNDcuMDU0IDI2OC44ODMgMTQ5LjMwNyAyNjguMjM3IDE1MS41NjEgMjY3LjU0OCAxNTMuOTU2WiIgZmlsbD0iI0ZGRkZGRiIgdHJhbnNmb3JtPSJtYXRyaXgoMS4wMDA5MiAwIDAgMSA3NzMgNDY0KSIvPjxwYXRoIGQ9Ik0xNTkuNzc3IDEwNy40NzJDMTYzLjU4MyAxMTUuMTkgMTY3LjM3MSAxMjIuODY3IDE3MS4yODMgMTMwLjc5OCAxNjkuODcyIDEzMC42MzYgMTY4LjU5NSAxMzAuNTY0IDE2Ny4zNDggMTMwLjMzIDE2Mi41NDEgMTI5LjQyOSAxNTguMjgzIDEyNy4zNDcgMTU0LjYgMTI0LjEzNCAxNTQuMjUgMTIzLjgyOCAxNTMuODkzIDEyMy4xMDEgMTU0LjAyMiAxMjIuNzQyIDE1NS43OTcgMTE3LjczNiAxNTcuNjU4IDExMi43NjEgMTU5LjUwNSAxMDcuNzgyIDE1OS41NDkgMTA3LjY2NSAxNTkuNjc5IDEwNy41ODIgMTU5Ljc3OSAxMDcuNDcyWiIgZmlsbD0iI0ZGRkZGRiIgdHJhbnNmb3JtPSJtYXRyaXgoMS4wMDA5MiAwIDAgMSA3NzMgNDY0KSIvPjxwYXRoIGQ9Ik0xOTEuNDggMTIyLjMwOUMxODYuNzcgMTI3LjE5IDE4MS4zMjggMTI5Ljg5NyAxNzQuODk2IDEzMC41ODUgMTc0LjUyIDEzMC42MjQgMTczLjg5NyAxMzAuMzc3IDE3My43MzYgMTMwLjA3NiAxNzEuMjczIDEyNS41MDIgMTY4Ljg2OSAxMjAuODk1IDE2Ni4yNiAxMTUuOTM2IDE3NC44NTggMTE4LjEwOCAxODMuMDQzIDEyMC4xNzcgMTkxLjQ4IDEyMi4zMDlaIiBmaWxsPSIjRkZGRkZGIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjAwMDkyIDAgMCAxIDc3MyA0NjQpIi8+PHBhdGggZD0iTTE3Ny42MjcgMTE2LjQwN0MxODQuNDc4IDExMS4zODYgMTkxLjIzNyAxMDYuNDMzIDE5OC4xNTggMTAxLjM2MiAxOTguNzI4IDEwNC41NjMgMTk4LjY0OSAxMDcuNjIxIDE5Ny43MSAxMTAuNDg1IDE5Ni43MTUgMTEzLjUyNCAxOTUuMjIyIDExNi40MDggMTkzLjgzMiAxMTkuMzA2IDE5My42MjggMTE5LjcyOSAxOTIuNzIxIDEyMC4xNjUgMTkyLjI2MSAxMjAuMDYgMTg3LjUxMiAxMTguOTg3IDE4Mi43OSAxMTcuODA0IDE3OC4wNiAxMTYuNjQ2IDE3Ny45MjggMTE2LjYxNCAxNzcuODE0IDExNi41MTIgMTc3LjYyNyAxMTYuNDA3WiIgZmlsbD0iI0ZGRkZGRiIgdHJhbnNmb3JtPSJtYXRyaXgoMS4wMDA5MiAwIDAgMSA3NzMgNDY0KSIvPjxwYXRoIGQ9Ik0xNjEuNTc2IDk2Ljc5OEMxNTguMjI4IDEwNS4xMTMgMTU1LjAwMiAxMTMuMTMzIDE1MS43NDQgMTIxLjIyOSAxNDcuNjQ1IDExNi40MjIgMTQ1LjU0OCAxMTAuODggMTQ1LjU5OSAxMDQuNTQ0IDE0NS42MDEgMTA0LjE5NSAxNDUuODc5IDEwMy42NiAxNDYuMTcgMTAzLjUzMiAxNTEuMjYgMTAxLjI3MyAxNTYuMzcyIDk5LjA2MjggMTYxLjU3NiA5Ni43OTk5WiIgZmlsbD0iI0ZGRkZGRiIgdHJhbnNmb3JtPSJtYXRyaXgoMS4wMDA5MiAwIDAgMSA3NzMgNDY0KSIvPjxwYXRoIGQ9Ik0xOTQuMDM2IDgzLjQwMkMxOTkuOTY3IDg1LjAzNzggMjA1LjQ4MSA4Ny41NDQzIDIxMC41MTcgOTEuMDM4OCAyMTAuOTE1IDkxLjMxNDYgMjExLjExIDkyLjIyMTIgMjExLjAzNiA5Mi43ODYgMjEwLjQxNSA5Ny41MDI2IDIwOC43MDUgMTAxLjg1MSAyMDYuMjY3IDEwNS45MDQgMjA1LjIwNSAxMDcuNjY5IDIwMy45NjIgMTA5LjMyMyAyMDIuNjU1IDExMC45ODIgMjA0LjI1NyAxMDAuMzQ1IDIwMS4zNzMgOTEuMjEwNyAxOTQuMDM4IDgzLjQwMDFaIiBmaWxsPSIjRkZGRkZGIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjAwMDkyIDAgMCAxIDc3MyA0NjQpIi8+PHBhdGggZD0iTTY0LjYwNzYgMTYxLjc0NiA2NC42MDc2IDE0MS45MjcgNzUuODY1MyAxNDEuOTI3IDc1Ljg2NTMgMTQ1Ljc2IDY5LjE1MjIgMTQ1Ljc2IDY5LjE1MjIgMTQ5LjY0MiA3NC44NzU2IDE0OS42NDIgNzQuODc1NiAxNTMuNTMzIDY5LjEyMiAxNTMuNTMzIDY5LjEyMiAxNTcuNzcxIDc1Ljg2MTYgMTU3Ljc3MSA3NS44NjE2IDE2MS43NDYgNjQuNjA3NiAxNjEuNzQ2WiIgZmlsbD0iI0ZGRkZGRiIgdHJhbnNmb3JtPSJtYXRyaXgoMS4wMDA5MiAwIDAgMSA3NzMgNDY0KSIvPjxwYXRoIGQ9Ik0yOTEuNjk0IDE0Ni44NjVDMjg5LjkyIDE0Ni4zMzggMjg4LjQzOSAxNDUuNzY3IDI4Ni45MDMgMTQ1LjQ4OCAyODUuODQ3IDE0NS4yOTUgMjg0LjY4NCAxNDUuNTUgMjg0LjM4NSAxNDYuODcyIDI4NC4xMDQgMTQ4LjEyNSAyODUuMDE4IDE0OC42ODggMjg1Ljk3OCAxNDkuMTMyIDI4Ny4yNDcgMTQ5LjcxNyAyODguNTYyIDE1MC4yMTYgMjg5Ljc5OSAxNTAuODYyIDI5Mi4xNTEgMTUyLjA5IDI5Mi45MTggMTU0LjE2OSAyOTIuNjc4IDE1Ni42OTEgMjkyLjQ1MSAxNTkuMDcxIDI5MS4yMjcgMTYwLjc1OCAyODguOTc1IDE2MS42IDI4Ni4wMjcgMTYyLjcwMyAyODMuMTc3IDE2Mi4zMSAyODAuNDc1IDE2MC44MDEgMjgwLjE2OCAxNjAuNjI5IDI3OS45MDUgMTYwLjA1NyAyNzkuOTIgMTU5LjY4MSAyNzkuOTYyIDE1OC41NzggMjgwLjE1MSAxNTcuNDc5IDI4MC4zMDQgMTU2LjIwNyAyODEuMDE0IDE1Ni41OTggMjgxLjYyOCAxNTcuMDg4IDI4Mi4zMjUgMTU3LjI4NiAyODMuNjQzIDE1Ny42NiAyODUuMDEzIDE1OC4wNzIgMjg2LjM1NiAxNTguMDU1IDI4Ni45NzkgMTU4LjA0NyAyODcuOTI5IDE1Ny4xNjUgMjg4LjEwMSAxNTYuNTEzIDI4OC4yMzcgMTU1Ljk5IDI4Ny41NzQgMTU0Ljk4MyAyODYuOTk2IDE1NC42MDcgMjg1LjgzNiAxNTMuODUyIDI4NC40NzIgMTUzLjQxNiAyODMuMjI0IDE1Mi43ODUgMjgwLjQ5NCAxNTEuNDA0IDI3OS40MjcgMTQ5LjMyOCAyNzkuODggMTQ2LjM5MSAyODAuMjY2IDE0My44OTIgMjgyLjIyMSAxNDEuODY5IDI4NS4wMjYgMTQxLjY4IDI4Ni44OTQgMTQxLjU1MyAyODguODEzIDE0Mi4wNDMgMjkwLjY5NiAxNDIuMzMyIDI5MS40NDIgMTQyLjQ0NyAyOTEuNzg2IDE0Mi45NTUgMjkxLjcxNCAxNDMuNzk5IDI5MS42MjYgMTQ0Ljg0IDI5MS42OTQgMTQ1Ljg5NCAyOTEuNjk0IDE0Ni44NjdaIiBmaWxsPSIjRkZGRkZGIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjAwMDkyIDAgMCAxIDc3MyA0NjQpIi8+PHBhdGggZD0iTTE4Mi43MzcgMTU2LjM5MkMxODIuODE2IDE1Ny4xMTQgMTgyLjg5MiAxNTcuNjgzIDE4Mi45NDEgMTU4LjI1NSAxODMuMTU4IDE2MC44NjMgMTgzLjA1NCAxNjEuMDE1IDE4MC41NjMgMTYxLjc2NiAxNzQuOTg1IDE2My40NDcgMTY5LjczNyAxNjAuMzY5IDE2OC42NjMgMTU0LjYzNiAxNjguMDIgMTUxLjIxNSAxNjguMzQ3IDE0Ny44NzcgMTcwLjU4NCAxNDQuOTkzIDE3My4yMjYgMTQxLjU4NyAxNzguMjI0IDE0MC40OTkgMTgyLjEgMTQyLjQwNSAxODIuOTQ2IDE0Mi44MjEgMTgzLjM4NyAxNDMuMjY4IDE4My4xMDMgMTQ0LjI5NCAxODIuODUyIDE0NS4yMDggMTgyLjc5NSAxNDYuMTc3IDE4Mi42NSAxNDcuMTQ2IDE3OC4yNTEgMTQ1LjE3NCAxNzYuMTE0IDE0NS4yODggMTc0LjM2OSAxNDcuNTQ3IDE3Mi41ODIgMTQ5Ljg1OSAxNzIuNjMzIDE1My45NzEgMTc0LjQ3NSAxNTYuMjE5IDE3Ni4yNzUgMTU4LjQxNSAxNzguNjMgMTU4LjQ4NSAxODIuNzM5IDE1Ni4zOTFaIiBmaWxsPSIjRkZGRkZGIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjAwMDkyIDAgMCAxIDc3MyA0NjQpIi8+PHBhdGggZD0iTTYwLjkxMjkgMTQ3LjEwN0M1OS42MzAzIDE0Ni42MjEgNTguNDYzIDE0NS45OSA1Ny4yMjIgMTQ1Ljc1MiA1NC45NTkxIDE0NS4zMTggNTMuMDA2IDE0Ni40NzIgNTIuMDc0OCAxNDguNTkzIDUxLjE3NzYgMTUwLjYzNSA1MS4xNTQ5IDE1Mi43NDMgNTEuOTM1IDE1NC44MDQgNTMuMDQxOSAxNTcuNzI4IDU2LjIyNjYgMTU4Ljg0NCA1OS4xNDQ5IDE1Ny4zOTcgNTkuNzM4IDE1Ny4xMDMgNjAuMjgzOSAxNTYuNzE0IDYwLjk5OTggMTU2LjI3OSA2MS4xMzk2IDE1Ny42MTUgNjEuMzUxMSAxNTguODMzIDYxLjM0NzMgMTYwLjA1MSA2MS4zNDczIDE2MC40MjMgNjAuODMzNiAxNjAuOTI2IDYwLjQzMTIgMTYxLjE0NSA1NS4yMDg0IDE2My45OTcgNDguODE0NiAxNjEuMjcgNDcuMjI2IDE1NS41NDIgNDUuNzQ4OSAxNTAuMjE2IDQ3LjU2OTggMTQ0LjgzNCA1MS43MTU5IDE0Mi42MTEgNTQuNTI0NyAxNDEuMTA0IDU3LjQ0NDkgMTQxLjEzIDYwLjM3MDggMTQyLjM4NCA2MS4yNTg2IDE0Mi43NjQgNjEuNjE5MyAxNDMuMzE4IDYxLjM4NTEgMTQ0LjMwNCA2MS4xNTQ3IDE0NS4yNzQgNjEuMDQ3IDE0Ni4yNzQgNjAuOTExIDE0Ny4xMDlaIiBmaWxsPSIjRkZGRkZGIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjAwMDkyIDAgMCAxIDc3MyA0NjQpIi8+PHBhdGggZD0iTTEwMS4yNzEgMTYxLjc3IDEwMS4yNzEgMTQ1LjkzNCA5Ni44NzczIDE0NS45MzQgOTYuODc3MyAxNDEuOTIgMTEwLjMyOCAxNDEuOTIgMTEwLjMyOCAxNDUuODA1IDEwNS44NjEgMTQ1LjgwNSAxMDUuODYxIDE2MS43NyAxMDEuMjcxIDE2MS43N1oiIGZpbGw9IiNGRkZGRkYiIHRyYW5zZm9ybT0ibWF0cml4KDEuMDAwOTIgMCAwIDEgNzczIDQ2NCkiLz48cGF0aCBkPSJNMTQ4LjIyNSAxNDEuODQ4IDE1Mi43MzIgMTQxLjg0OCAxNTIuNzMyIDE1Ny43MzUgMTU5LjY4NSAxNTcuNzM1IDE1OS42ODUgMTYxLjc1MyAxNDguMjI3IDE2MS43NTMgMTQ4LjIyNyAxNDEuODQ4WiIgZmlsbD0iI0ZGRkZGRiIgdHJhbnNmb3JtPSJtYXRyaXgoMS4wMDA5MiAwIDAgMSA3NzMgNDY0KSIvPjxwYXRoIGQ9Ik0yOTIuMzA3IDE3NS4wODlDMjkwLjIyNCAxNzUuMjc2IDI4OC4xNDQgMTc1LjU1MyAyODYuMDU3IDE3NS42MzYgMjc2LjU0OCAxNzYuMDE0IDI2Ny4wMzYgMTc2LjMyOCAyNTcuNTI1IDE3Ni42ODkgMjU2LjM4MSAxNzYuNzMyIDI1NS41OTMgMTc2LjQwNSAyNTUuNTU1IDE3NS4xNTcgMjU1LjUxOSAxNzMuOTQ0IDI1Ni4xOTYgMTczLjQzOCAyNTcuMzg5IDE3My40NzkgMjY4LjgyOSAxNzMuODc4IDI4MC4yNyAxNzQuMjYzIDI5MS43MDkgMTc0LjY1OCAyOTEuOTE1IDE3NC42NjYgMjkyLjExNyAxNzQuNzU2IDI5Mi4zMjEgMTc0LjgwNyAyOTIuMzE3IDE3NC45MDIgMjkyLjMxMSAxNzQuOTk0IDI5Mi4zMDcgMTc1LjA4OVoiIGZpbGw9IiNGRkZGRkYiIHRyYW5zZm9ybT0ibWF0cml4KDEuMDAwOTIgMCAwIDEgNzczIDQ2NCkiLz48cGF0aCBkPSJNNDguMzcwNyAxNzQuNjQxQzUyLjk5NDcgMTc0LjM3NSA1Ny42MTQ5IDE3NC4wMTIgNjIuMjQyNyAxNzMuODY1IDY4Ljg1NzYgMTczLjY1NSA3NS40NzYyIDE3My41OTEgODIuMDkzIDE3My40OTQgODMuNjU4OSAxNzMuNDcyIDg0LjU0NDggMTc0Ljc3NyA4My43MTM3IDE3NS45MiA4My40MDAxIDE3Ni4zNSA4Mi41ODk4IDE3Ni42NDEgODIuMDE1NiAxNzYuNjI2IDc0LjQ4MjcgMTc2LjQzMiA2Ni45NDk4IDE3Ni4yMTMgNTkuNDIwNyAxNzUuOTA1IDU1Ljk5NjEgMTc1Ljc2NSA1Mi41NzkxIDE3NS40MTcgNDkuMTYwMiAxNzUuMTU5IDQ4Ljg5NTggMTc1LjEzOCA0OC42MzUxIDE3NS4wNzIgNDguMzcwNyAxNzUuMDI2IDQ4LjM3MDcgMTc0Ljg5OCA0OC4zNzA3IDE3NC43NjkgNDguMzcwNyAxNzQuNjQxWiIgZmlsbD0iI0ZGRkZGRiIgdHJhbnNmb3JtPSJtYXRyaXgoMS4wMDA5MiAwIDAgMSA3NzMgNDY0KSIvPjxwYXRoIGQ9Ik0yMjQuNzIzIDE3OS43MzdDMjIzLjI1OSAxODAuMjE1IDIyMi4zODYgMTc5LjczNyAyMjEuNjc4IDE3OC40OTQgMjIwLjY0MSAxNzYuNjczIDIxOS40MzIgMTc0Ljk0OSAyMTguMDE2IDE3My4yNTZMMjE4LjAxNiAxNzkuNzg2IDIxNS45MjggMTc5Ljc4NiAyMTUuOTI4IDE2OS4zMTZDMjE3LjMzNCAxNjguODg5IDIxOC4yNzggMTY5LjEzOSAyMTkuMDQxIDE3MC41MTQgMjIwLjA1NiAxNzIuMzQ0IDIyMS4zMjcgMTc0LjAzMSAyMjIuNzQyIDE3Ni4xNkwyMjIuNzQyIDE2OS4yMjcgMjI0LjcyMyAxNjkuMjI3IDIyNC43MjMgMTc5LjczN1oiIGZpbGw9IiNGRkZGRkYiIHRyYW5zZm9ybT0ibWF0cml4KDEuMDAwOTIgMCAwIDEgNzczIDQ2NCkiLz48cGF0aCBkPSJNMTI4LjkzNyAxNzkuNzY2IDEyOC45MzcgMTY5LjI4QzEzMC42MTkgMTY5LjI4IDEzMi4yMjQgMTY5LjEwNSAxMzMuNzczIDE2OS4zMiAxMzYuNDQgMTY5LjY4OCAxMzcuODc4IDE3MS42MTEgMTM3Ljg4NyAxNzQuNDM3IDEzNy44OTYgMTc3LjMwNiAxMzYuMzk1IDE3OS4zNjUgMTMzLjc1NiAxNzkuNzI4IDEzMi4yMDEgMTc5Ljk0MSAxMzAuNTk2IDE3OS43NjcgMTI4LjkzNyAxNzkuNzY3Wk0xMzEuMTQ2IDE3Ny45MzFDMTMyLjcxNSAxNzguMDkyIDEzNC4wODcgMTc4LjA2OSAxMzQuOTk3IDE3Ni42OTIgMTM1Ljc4MSAxNzUuNTA4IDEzNS43NjggMTczLjM5OCAxMzQuOTc2IDE3Mi4yOTMgMTM0LjAyIDE3MC45NjEgMTMyLjY2NCAxNzAuOTQ0IDEzMS4xNDcgMTcxLjE2N0wxMzEuMTQ3IDE3Ny45MzFaIiBmaWxsPSIjRkZGRkZGIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjAwMDkyIDAgMCAxIDc3MyA0NjQpIi8+PHBhdGggZD0iTTE1OC40MDYgMTc0LjUzN0MxNTguMzU5IDE3Ny44OTIgMTU2LjIzNCAxODAuMTcgMTUzLjIxOSAxODAuMSAxNTAuMTQgMTgwLjAyOCAxNDguMTI3IDE3Ny43MzEgMTQ4LjIwNiAxNzQuMzc4IDE0OC4yODIgMTcxLjE1IDE1MC40MzkgMTY4LjkxIDE1My40MTQgMTY4Ljk2OSAxNTYuNDU3IDE2OS4wMjkgMTU4LjQ1MyAxNzEuMjU2IDE1OC40MDYgMTc0LjUzN1pNMTU2LjE4MSAxNzQuNzI0QzE1Ni4xMDIgMTc0LjA1NSAxNTYuMDgxIDE3My42NjYgMTU2LjAwNSAxNzMuMjg5IDE1NS43MDcgMTcxLjc4NyAxNTQuNyAxNzAuODkzIDE1My4zMzYgMTcwLjg5NSAxNTIuMDU2IDE3MC44OTcgMTUwLjkxMyAxNzEuNzM0IDE1MC43NTIgMTczLjE3MyAxNTAuNjI0IDE3NC4zMjYgMTUwLjY3MSAxNzUuNjM4IDE1MS4xMjYgMTc2LjY2NCAxNTEuNDMyIDE3Ny4zNTUgMTUyLjU4NiAxNzguMDU0IDE1My4zNTkgMTc4LjA1MiAxNTQuMTMzIDE3OC4wNSAxNTUuMDY2IDE3Ny4zMTkgMTU1LjYyOSAxNzYuNjUzIDE1Ni4wNzMgMTc2LjEyNiAxNTYuMDU4IDE3NS4yMTMgMTU2LjE4MyAxNzQuNzI0WiIgZmlsbD0iI0ZGRkZGRiIgdHJhbnNmb3JtPSJtYXRyaXgoMS4wMDA5MiAwIDAgMSA3NzMgNDY0KSIvPjxwYXRoIGQ9Ik04OS4yMjU0IDE3OS44NDEgODkuMjI1NCAxNjkuMjIyQzkwLjg0OTkgMTY5LjIyMiA5Mi4zOTg4IDE2OS4wNjUgOTMuOTA0MiAxNjkuMjU2IDk2LjY0ODggMTY5LjYwNSA5OC4yNjE5IDE3MS42OTQgOTguMjIwMyAxNzQuNTQxIDk4LjE3ODggMTc3LjQzMSA5Ni40MjIxIDE3OS41NDggOTMuNjc1NyAxNzkuODE3IDkyLjI0NTggMTc5Ljk1NiA5MC43OTEzIDE3OS44NDEgODkuMjI1NCAxNzkuODQxWk05MS40NjE5IDE3Ny45NThDOTMuMTI5OCAxNzguMDY2IDk0LjU5MzcgMTc4LjA3NyA5NS40MjI5IDE3Ni41MzQgOTYuMTg2IDE3NS4xMTUgOTYuMTk3MyAxNzMuNjI1IDk1LjI4NjkgMTcyLjI4IDk0LjM4MDIgMTcwLjkzNyA5Mi45OTM4IDE3MC44OTIgOTEuNDYxOSAxNzEuMTc5TDkxLjQ2MTkgMTc3Ljk1OFoiIGZpbGw9IiNGRkZGRkYiIHRyYW5zZm9ybT0ibWF0cml4KDEuMDAwOTIgMCAwIDEgNzczIDQ2NCkiLz48cGF0aCBkPSJNMTg4LjQyMiAxNjkuOTY0QzE4OC4xOTIgMTcwLjU1OSAxODcuOTg4IDE3MS4wODQgMTg3Ljc2MyAxNzEuNjYgMTg3LjQ2NyAxNzEuNTM4IDE4Ny4yNTMgMTcxLjQ0MyAxODcuMDM0IDE3MS4zNTggMTg1LjU1OSAxNzAuNzgyIDE4NC4wODUgMTcwLjU4MiAxODIuODYxIDE3MS44MzIgMTgxLjU4NiAxNzMuMTMyIDE4MS42NzcgMTc0LjcyNiAxODIuMjI5IDE3Ni4zMDEgMTgyLjcyMiAxNzcuNzEgMTg0LjU3NSAxNzguNjM0IDE4NS45MDEgMTc3Ljk4MSAxODYuNDAxIDE3Ny43MzMgMTg2LjUzNyAxNzYuNzQ5IDE4Ni45NDMgMTc1Ljg3OCAxODYuMDEgMTc1Ljc2OSAxODUuNTA2IDE3NS43MSAxODQuODI2IDE3NS42MjkgMTg0Ljc5NiAxNzUuMTY4IDE4NC43NjQgMTc0LjY3MSAxODQuNzI0IDE3NC4wNjFMMTg4LjcyNSAxNzQuMDYxQzE4OC43MjUgMTc1LjU5MyAxODguNzQzIDE3Ny4xNTkgMTg4LjcwMiAxNzguNzIzIDE4OC42OTYgMTc4LjkzMyAxODguNDExIDE3OS4xOTUgMTg4LjE5MiAxNzkuMzI5IDE4NS45ODIgMTgwLjY4MiAxODIuNjU2IDE4MC4yODkgMTgwLjkzOSAxNzguNDk0IDE3OS4yNDggMTc2LjcyNCAxNzkuMDcgMTczLjM3IDE4MC41NTUgMTcxLjIyOCAxODIuMjMxIDE2OC44MSAxODUuNTI5IDE2OC4yMzYgMTg4LjQyMiAxNjkuOTY0WiIgZmlsbD0iI0ZGRkZGRiIgdHJhbnNmb3JtPSJtYXRyaXgoMS4wMDA5MiAwIDAgMSA3NzMgNDY0KSIvPjxwYXRoIGQ9Ik0yNTEuNjg5IDE3OS43MzNDMjUwLjEyMyAxODAuMTMgMjQ5LjEyIDE3OS45NzUgMjQ4LjgxNiAxNzguMzM4IDI0OC43NTUgMTc4LjAxMyAyNDguMTIxIDE3Ny42NDYgMjQ3LjcwMSAxNzcuNTcxIDI0Ny4wMDEgMTc3LjQ0NCAyNDYuMjQxIDE3Ny40NDYgMjQ1LjU0IDE3Ny41NzQgMjQ1LjEyNyAxNzcuNjUyIDI0NC41MDkgMTc4LjAzIDI0NC40NDkgMTc4LjM1OCAyNDQuMTM5IDE4MC4wMzggMjQzLjA3NyAxODAuMDc3IDI0MS41OTYgMTc5LjcyNiAyNDIuODA1IDE3Ni4zNzEgMjQzLjk2NSAxNzMuMDE4IDI0NS4yNyAxNjkuNzIyIDI0NS40MTQgMTY5LjM2MiAyNDYuMzg3IDE2OS4xOTkgMjQ2Ljk3OCAxNjkuMTg4IDI0Ny4zODIgMTY5LjE4IDI0OC4wMzkgMTY5LjUwNyAyNDguMTY0IDE2OS44NDEgMjQ5LjM3OSAxNzMuMDkgMjUwLjUwNiAxNzYuMzcxIDI1MS42ODkgMTc5LjczM1pNMjQ2Ljc3NiAxNzEuODE1QzI0Ni42NjggMTcxLjgxMSAyNDYuNTYgMTcxLjgxIDI0Ni40NTMgMTcxLjgwNiAyNDYuMDY5IDE3My4wMzcgMjQ1LjY4OCAxNzQuMjcxIDI0NS4yNDQgMTc1LjY5MyAyNDYuMyAxNzUuNjM4IDI0Ny4wNzIgMTc1LjU5OSAyNDcuOTY0IDE3NS41NTMgMjQ3LjUyNCAxNzQuMTY5IDI0Ny4xNSAxNzIuOTkyIDI0Ni43NzQgMTcxLjgxNVoiIGZpbGw9IiNGRkZGRkYiIHRyYW5zZm9ybT0ibWF0cml4KDEuMDAwOTIgMCAwIDEgNzczIDQ2NCkiLz48cGF0aCBkPSJNMjAzLjk1MSAxNzkuNzQxQzIwNS4xNTQgMTc2LjM4OCAyMDYuMjg5IDE3My4xMTMgMjA3LjU0NCAxNjkuODgzIDIwNy42OTEgMTY5LjUwNSAyMDguNDkgMTY5LjIwMyAyMDguOTkyIDE2OS4xOTUgMjA5LjQ5NSAxNjkuMTg4IDIxMC4zMTggMTY5LjQ2OSAyMTAuNDYgMTY5LjgzNCAyMTEuNzA1IDE3My4wNjggMjEyLjgyNyAxNzYuMzQ3IDIxMy45ODggMTc5LjYyIDIxMS45NjUgMTgwLjE3MiAyMTEuOTE4IDE4MC4xMTcgMjExLjE2NSAxNzguNDA5IDIxMS4wMDIgMTc4LjA0MSAyMTAuNDkgMTc3LjY4IDIxMC4wODQgMTc3LjYwMSAyMDkuMzg1IDE3Ny40NjcgMjA4LjYyMiAxNzcuNDUgMjA3LjkyNyAxNzcuNTkgMjA3LjQ3NiAxNzcuNjggMjA2LjgxMyAxNzguMDcxIDIwNi43MzUgMTc4LjQzNCAyMDYuMzk1IDE4MC4wMDIgMjA1LjQyIDE4MC4xMDIgMjAzLjk0OSAxNzkuNzQxWk0yMTAuMzY2IDE3NS41OTlDMjA5Ljg4NiAxNzQuMTQ4IDIwOS40ODkgMTcyLjk0MSAyMDguOTYgMTcxLjM0MyAyMDguNDI2IDE3MyAyMDguMDIxIDE3NC4yNDggMjA3LjU4NSAxNzUuNTk5TDIxMC4zNjYgMTc1LjU5OVoiIGZpbGw9IiNGRkZGRkYiIHRyYW5zZm9ybT0ibWF0cml4KDEuMDAwOTIgMCAwIDEgNzczIDQ2NCkiLz48cGF0aCBkPSJNMTAyLjY4OCAxNzEuMDA1IDEwMi42ODggMTczLjQwOUMxMDMuODU1IDE3My40NjYgMTA1LjAyOCAxNzMuNTI1IDEwNi4yNTYgMTczLjU4NUwxMDYuMjU2IDE3NS4zMTMgMTAyLjY5MSAxNzUuMzEzIDEwMi42OTEgMTc3Ljk3NyAxMDYuOCAxNzcuOTc3IDEwNi44IDE3OS43ODQgMTAwLjU0OSAxNzkuNzg0IDEwMC41NDkgMTY5LjI0MyAxMDYuNjAxIDE2OS4yNDMgMTA2LjYwMSAxNzEuMDA3IDEwMi42ODkgMTcxLjAwN1oiIGZpbGw9IiNGRkZGRkYiIHRyYW5zZm9ybT0ibWF0cml4KDEuMDAwOTIgMCAwIDEgNzczIDQ2NCkiLz48cGF0aCBkPSJNMTQyLjM4OCAxNzUuMjgxIDE0Mi4zODggMTc3Ljk3NSAxNDYuMzk2IDE3Ny45NzUgMTQ2LjM5NiAxNzkuODAxIDE0MC4xOSAxNzkuODAxIDE0MC4xOSAxNjkuMjI3IDE0Ni4yMjggMTY5LjIyNyAxNDYuMjI4IDE3MS4wMTIgMTQyLjQwOSAxNzEuMDEyIDE0Mi40MDkgMTczLjQ1NyAxNDUuODU2IDE3My40NTcgMTQ1Ljg1NiAxNzUuMjgxIDE0Mi4zOSAxNzUuMjgxWiIgZmlsbD0iI0ZGRkZGRiIgdHJhbnNmb3JtPSJtYXRyaXgoMS4wMDA5MiAwIDAgMSA3NzMgNDY0KSIvPjxwYXRoIGQ9Ik0xNjMuNjQ4IDE2OS4zMTFDMTY1LjE5NSAxNjguODYxIDE2Ni4wODYgMTY5LjEwNyAxNjYuNDgzIDE3MC43ODIgMTY2Ljk2MyAxNzIuODE2IDE2Ny43NjIgMTc0Ljc3NSAxNjguNTMyIDE3Ny4xIDE2OS4yNzcgMTc0Ljc5IDE3MC4wMTMgMTcyLjg2MiAxNzAuNTAxIDE3MC44NzMgMTcwLjg4IDE2OS4zMTggMTcxLjY1OCAxNjguODAxIDE3My4yOTYgMTY5LjI4IDE3Mi43ODggMTcwLjc5MSAxNzIuMjc0IDE3Mi4zMTYgMTcxLjc2NCAxNzMuODQyIDE3MS4yNDUgMTc1LjM5NyAxNzAuNzE0IDE3Ni45NDcgMTcwLjIxMyAxNzguNTA5IDE2OS45NTcgMTc5LjMwOCAxNjkuNzY0IDE3OS45NjYgMTY4LjYxNyAxNzkuOTM0IDE2Ny41NzUgMTc5LjkwMyAxNjcuMDkzIDE3OS41OTkgMTY2Ljc3OCAxNzguNjA2IDE2NS43ODggMTc1LjQ5MyAxNjQuNyAxNzIuNDEgMTYzLjY1IDE2OS4zMTJaIiBmaWxsPSIjRkZGRkZGIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjAwMDkyIDAgMCAxIDc3MyA0NjQpIi8+PHBhdGggZD0iTTExMi4zMyAxNjkuMzExQzExMy44NDMgMTY4Ljg2OSAxMTQuNzA4IDE2OS4xMDcgMTE1LjEwOSAxNzAuNjkzIDExNS42MjUgMTcyLjczMSAxMTYuNDA4IDE3NC43IDExNy4xOTIgMTc3LjA0NCAxMTcuOTM1IDE3NC43ODYgMTE4LjY2OCAxNzIuODc5IDExOS4xNzYgMTcwLjkxNCAxMTkuNTY1IDE2OS40MDkgMTIwLjI3NSAxNjguNzU5IDEyMS45NzkgMTY5LjMwNyAxMjEuNDk5IDE3MC42OTkgMTIxLjAwOCAxNzIuMTIxIDEyMC41MTkgMTczLjU0NSAxMTkuODkyIDE3NS4zNyAxMTkuMzA0IDE3Ny4yMDggMTE4LjYwNyAxNzkuMDA0IDExOC40NjQgMTc5LjM3NiAxMTcuOTIzIDE3OS44MTEgMTE3LjU0NyAxNzkuODMgMTE2Ljk1NiAxNzkuODYgMTE1LjkzNiAxNzkuNzE1IDExNS44MSAxNzkuMzc4IDExNC41NjcgMTc2LjA1NiAxMTMuNDY5IDE3Mi42NzcgMTEyLjMzIDE2OS4zMTFaIiBmaWxsPSIjRkZGRkZGIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjAwMDkyIDAgMCAxIDc3MyA0NjQpIi8+PHBhdGggZD0iTTIzNS4xMTIgMTc3LjM3QzIzNS4yMDYgMTc3Ljk0MyAyMzUuMjk5IDE3OC41MDYgMjM1LjM5IDE3OS4wNTcgMjMzLjI3NCAxODAuNjM0IDIzMC4zMDEgMTgwLjQwOCAyMjguNTIzIDE3OC41NTMgMjI2LjYyMSAxNzYuNTY4IDIyNi41MjUgMTcyLjkzMyAyMjguMzE4IDE3MC44MjQgMjMwLjA5NSAxNjguNzMxIDIzMi45ODMgMTY4LjM0MyAyMzUuNDMxIDE2OS45MjMgMjM1LjI5MSAxNzAuNDQ2IDIzNS4xNDQgMTcwLjk5IDIzNC45NjYgMTcxLjY1NyAyMzMuMTk4IDE3MC45MDEgMjMxLjQxNSAxNzAuMzE0IDIzMC4wNTIgMTcyLjIxNCAyMjkuMTExIDE3My41MjMgMjI5LjIzNyAxNzUuNzU0IDIzMC4yMDMgMTc3LjAwMiAyMzEuMTkyIDE3OC4yODUgMjMyLjMzNyAxNzguMzczIDIzNS4xMSAxNzcuMzdaIiBmaWxsPSIjRkZGRkZGIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjAwMDkyIDAgMCAxIDc3MyA0NjQpIi8+PHBhdGggZD0iTTE5OC42NjggMTY5LjIzOSAxOTguNjY4IDE3Ny45MjQgMjAyLjcgMTc3LjkyNCAyMDIuNyAxNzkuODMgMTk2LjQ4MiAxNzkuODMgMTk2LjQ4MiAxNjkuMjM5IDE5OC42NjggMTY5LjIzOVoiIGZpbGw9IiNGRkZGRkYiIHRyYW5zZm9ybT0ibWF0cml4KDEuMDAwOTIgMCAwIDEgNzczIDQ2NCkiLz48cGF0aCBkPSJNMTI2IDE3OS44NDMgMTIzLjk1OCAxNzkuODQzIDEyMy45NTggMTY5LjI0NiAxMjYgMTY5LjI0NiAxMjYgMTc5Ljg0M1oiIGZpbGw9IiNGRkZGRkYiIHRyYW5zZm9ybT0ibWF0cml4KDEuMDAwOTIgMCAwIDEgNzczIDQ2NCkiLz48cGF0aCBkPSJNMTc1LjIzMiAxNjkuMjM1IDE3Ny4zMSAxNjkuMjM1IDE3Ny4zMSAxNzkuNzcxIDE3NS4yMzIgMTc5Ljc3MSAxNzUuMjMyIDE2OS4yMzVaIiBmaWxsPSIjRkZGRkZGIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjAwMDkyIDAgMCAxIDc3MyA0NjQpIi8+PHBhdGggZD0iTTIzOS43NTEgMTc5LjgxNSAyMzcuNjQ1IDE3OS44MTUgMjM3LjY0NSAxNjkuMjU0IDIzOS43NTEgMTY5LjI1NCAyMzkuNzUxIDE3OS44MTVaIiBmaWxsPSIjRkZGRkZGIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjAwMDkyIDAgMCAxIDc3MyA0NjQpIi8+PHBhdGggZD0iTTE5My40NDcgMTY5LjI4IDE5My40NDcgMTc5Ljc4MyAxOTEuMjkyIDE3OS43ODMgMTkxLjI5MiAxNjkuMjggMTkzLjQ0NyAxNjkuMjhaIiBmaWxsPSIjRkZGRkZGIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjAwMDkyIDAgMCAxIDc3MyA0NjQpIi8+PHBhdGggZD0iTTE5OS4xMjcgMTM2LjQxNEMxOTcuMDgzIDEzNy45NDQgMTk1Ljc3NCAxNDAuODM5IDE5Mi4yMzYgMTM5Ljg2NSAxOTIuOTM3IDEzOC43MiAxOTMuNTczIDEzNy42MDkgMTk0LjI5NSAxMzYuNTU3IDE5NC40NzEgMTM2LjMwMiAxOTQuOTE4IDEzNi4xMTkgMTk1LjI0OSAxMzYuMTA0IDE5Ni40OTIgMTM2LjA1MSAxOTcuNzM4IDEzNi4wODMgMTk4Ljk4NSAxMzYuMDgzTDE5OS4xMjcgMTM2LjQxNFoiIGZpbGw9IiNGRkZGRkYiIHRyYW5zZm9ybT0ibWF0cml4KDEuMDAwOTIgMCAwIDEgNzczIDQ2NCkiLz48L2c+PC9zdmc+">
+<div class="titulo">Control de firmas de cuaderno</div>
+<br></div>
+</header>
+
+<button class="exportar" onclick="exportarPDF()">PDF</button>
+
+<div id="panel">
+
+<div class="card resumen">
+<h3>RESUMEN DE ZONA</h3>
+<div class="grid">
+<div class="stat">TOTAL<br><b id="total">0</b></div>
+<div class="stat">REALIZADAS<br><b id="real">0</b></div>
+<div class="stat">PENDIENTES<br><b id="pend">0</b></div>
+<div class="stat">AVANCE<br><b id="avance">0%</b></div>
+</div>
+</div>
+
+<div class="card">
+    <button onclick="seleccionar('MAYORAZGO')">MAYORAZGO</button>
+    <button onclick="seleccionar('SALAMANCA')">SALAMANCA</button>
+    <button onclick="seleccionar('VITARTE')">VITARTE</button>
+    <button onclick="seleccionar('SANTA CLARA')">SANTA CLARA</button>
+    <button onclick="seleccionar('HUAYCAN')">HUAYCAN</button>
+    <button onclick="todos()">TODAS</button>
+</div>
+
+<div class="card">
+<h3>FIRMAS DE LA BASE</h3>
+
+
+
+<input class="buscar" id="buscar" placeholder="Buscar dirección">
+<div id="lista"></div>
+</div>
+
+</div>
+
+<div id="map"></div>
+
+<!-- PANEL LATERAL DE UBICACIÓN -->
+<div id="detalleLateral">
+
+    <button id="cerrarDetalle" onclick="cerrarDetalle()">×</button>
+
+    <div class="detalleTitulo">
+        DETALLE DE UBICACIÓN
+    </div>
+
+    <div class="detalleImagen">
+        <img id="detalleImagen"
+             src="ubicacion_serenazgo.png"
+             alt="Imagen de ubicación">
+    </div>
+
+    <div class="detalleContenido">
+
+        <div class="datoDetalle">
+            <span>📍 DIRECCIÓN</span>
+            <strong id="detalleDireccion">---</strong>
+        </div>
+
+        <div class="datoDetalle">
+            <span>🏢 BASE</span>
+            <strong id="detalleBase">---</strong>
+        </div>
+
+        <div class="datoDetalle">
+            <span>🌐 COORDENADAS</span>
+            <strong id="detalleCoordenadas">---</strong>
+        </div>
+
+        <div class="datoDetalle">
+            <span>✍️ ESTADO</span>
+            <strong id="detalleEstado">---</strong>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js">
+if(document.getElementById('buscar')){
+document.getElementById('buscar').addEventListener('input',function(){
+let t=this.value.toLowerCase();
+cargar(actual.filter(x=>(x.base+x.dir).toLowerCase().includes(t)));
+});
+}
+
+function exportarPDF(){
+
+let bases=[...new Set(datos.map(x=>x.base))];
+
+let filas=bases.map(base=>{
+let lista=datos.filter(x=>x.base===base);
+let realizadas=lista.filter(x=>x.ok).length;
+let pendientes=lista.length-realizadas;
+let avance=lista.length?Math.round(realizadas/lista.length*100):0;
+
+return `<tr>
+<td>${base}</td>
+<td>${lista.length}</td>
+<td>${realizadas}</td>
+<td>${pendientes}</td>
+<td>${avance}%</td>
+</tr>`;
+}).join("");
+
+let listaPendientes=datos.filter(x=>!x.ok).map(x=>`
+<tr>
+<td>${x.base}</td>
+<td>${x.dir}</td>
+</tr>`).join("");
+
+let html=`
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+body{font-family:Arial;padding:40px;color:#1f2937}
+h1{text-align:center;color:#075985}
+.fecha{position:absolute;right:30px;top:20px}
+.resumen{
+background:#fef3c7;
+padding:20px;
+border-radius:15px;
+}
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:15px
+}
+th{
+background:#075985;
+color:white;
+padding:10px
+}
+td{
+border:1px solid #ccc;
+padding:10px;
+text-align:center
+}
+
+
+
+
+100%{
+opacity:0;
+transform:scale(.2) translate(var(--movx),var(--movy));
+}
+}
+
+
+
+
+@keyframes energiaChispa{
+0%{
+opacity:1;
+transform:translate(0,0) rotate(0deg) scale(1);
+}
+70%{
+opacity:1;
+}
+100%{
+opacity:0;
+transform:
+translate(var(--x),var(--y))
+rotate(var(--r))
+scale(.2);
+}
+}
+
+
+
+@keyframes ondaEnergia{
+from{
+transform:scale(.2);
+opacity:1;
+}
+to{
+transform:scale(4);
+opacity:0;
+}
+}
+
+
+
+
+100%{
+opacity:0;
+transform:translate(var(--dx),var(--dy)) scale(0);
+}
+}
+
+
+
+
+100%{transform:scale(5);opacity:0}
+}
+
+.chispa{
+position:fixed;
+width:4px;
+height:4px;
+border-radius:50%;
+background:radial-gradient(circle,#ffffff,#fde047,#f59e0b);
+pointer-events:none;
+z-index:99999;
+box-shadow:0 0 6px #facc15,0 0 12px #fff;
+animation:particulaRapida .45s ease-out forwards;
+}
+
+@keyframes particulaRapida{
+0%{
+opacity:1;
+transform:translate(0,0) scale(1.8);
+}
+100%{
+opacity:0;
+transform:translate(var(--x),var(--y)) scale(.1);
+}
+}
+
+/* EFECTO CURSOR ENERGIA */
+.cursorParticula{
+position:fixed;
+width:6px;
+height:6px;
+background:#facc15;
+border-radius:50%;
+pointer-events:none;
+z-index:999999;
+box-shadow:0 0 8px #fff,0 0 15px #facc15;
+animation:salidaParticula .7s ease-out forwards;
+}
+
+@keyframes salidaParticula{
+0%{
+opacity:1;
+transform:translate(0,0) scale(1);
+}
+100%{
+opacity:0;
+transform:translate(var(--tx),var(--ty)) scale(0);
+}
+}
+
+.destelloClick{
+position:fixed;
+width:15px;
+height:15px;
+border-radius:50%;
+border:2px solid #fde047;
+pointer-events:none;
+z-index:999998;
+animation:ondaClick .5s ease-out forwards;
+}
+
+@keyframes ondaClick{
+0%{opacity:1;transform:scale(.5)}
+100%{opacity:0;transform:scale(4)}
+}
+
+
+.titulo{
+font-family: "Great Vibes", cursive !important;
+font-size: 54px !important;
+font-weight: 400 !important;
+font-style: normal !important;
+letter-spacing: 1px;
+color: #ffffff !important;
+text-align: center;
+line-height: 1;
+text-shadow: 0 0 10px #ffffff, 0 0 25px rgba(255,255,255,.8);
+}
+
+
+/* GRID DEGRADADO PARA LABELS DE ZONAS */
+.zona-label, .base-label, .titulo-base{
+background:
+linear-gradient(135deg,rgba(56,189,248,.95),rgba(30,64,175,.95));
+background-image:
+linear-gradient(rgba(255,255,255,.12) 1px, transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.12) 1px, transparent 1px),
+linear-gradient(135deg,#38bdf8,#1e40af);
+background-size:22px 22px,22px 22px,100% 100%;
+border-radius:10px;
+padding:8px;
+box-shadow:0 0 12px rgba(56,189,248,.7);
+font-weight:bold;
+}
+
+/* VARIACION GRID PARA FIRMAS POR BASE */
+.firmas-base-header{
+background:
+linear-gradient(135deg,rgba(14,116,144,.95),rgba(59,130,246,.95));
+background-image:
+linear-gradient(rgba(255,255,255,.10) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.10) 1px,transparent 1px),
+linear-gradient(135deg,#0e7490,#2563eb);
+background-size:16px 16px,16px 16px,100% 100%;
+border-radius:12px;
+padding:10px;
+box-shadow:0 0 15px rgba(14,165,233,.6);
+}
+
+
+/* GRID ESTETICO VISIBLE PARA LABELS */
+.grid-estetico-zona{
+position:relative;
+overflow:hidden;
+background:
+linear-gradient(135deg,#38bdf8,#1d4ed8);
+}
+
+.grid-estetico-zona::before{
+content:"";
+position:absolute;
+inset:0;
+background-image:
+linear-gradient(rgba(255,255,255,.20) 1px, transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.20) 1px, transparent 1px);
+background-size:18px 18px;
+opacity:.55;
+pointer-events:none;
+}
+
+.grid-estetico-zona > *{
+position:relative;
+z-index:2;
+}
+
+
+/* GRID DIFERENTE PARA FIRMAS POR BASE */
+.grid-estetico-firmas{
+position:relative;
+overflow:hidden;
+background:
+linear-gradient(135deg,#0891b2,#2563eb);
+}
+
+.grid-estetico-firmas::before{
+content:"";
+position:absolute;
+inset:0;
+background-image:
+linear-gradient(rgba(255,255,255,.16) 1px, transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.16) 1px, transparent 1px);
+background-size:12px 12px;
+opacity:.6;
+pointer-events:none;
+}
+
+.grid-estetico-firmas > *{
+position:relative;
+z-index:2;
+}
+
+
+/* PALETA NUEVA - DISEÑO VISUAL */
+body{
+background:
+linear-gradient(135deg,#FFF1D1 0%,#00B7CD 100%);
+}
+
+/* GRID GENERAL */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(94,49,34,.10) 1px,transparent 1px),
+linear-gradient(90deg,rgba(94,49,34,.10) 1px,transparent 1px);
+background-size:35px 35px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Panel de bases */
+.panel,
+.card,
+.contenedor,
+.box{
+background:rgba(255,241,209,.92);
+border:2px solid rgba(0,183,205,.45);
+box-shadow:0 8px 25px rgba(94,49,34,.18);
+}
+
+/* Bases MAYORAZGO SALAMANCA ETC */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#00B7CD,#FF9100);
+color:#FFF1D1;
+border:2px solid #DF301C;
+box-shadow:
+0 0 15px rgba(0,183,205,.7),
+0 5px 15px rgba(94,49,34,.25);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#5E3122,#DF301C);
+color:#FFF1D1;
+border:2px solid #FF9100;
+box-shadow:0 0 18px rgba(255,145,0,.55);
+}
+
+/* Botones */
+button{
+background:linear-gradient(135deg,#DF301C,#FF9100);
+color:#FFF1D1;
+border:none;
+}
+
+button:hover{
+box-shadow:0 0 15px #FF9100;
+}
+
+
+/* ===== NUEVA ARMONIA VISUAL - LIMPIA Y SUAVE ===== */
+
+/* Fondo general */
+body{
+background:
+linear-gradient(135deg,#FFFDF8 0%,#E6F7FA 45%,#D6EEF8 100%);
+color:#5E3122;
+}
+
+/* Grid elegante */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(0,183,205,.10) 1px,transparent 1px),
+linear-gradient(90deg,rgba(0,183,205,.10) 1px,transparent 1px);
+background-size:40px 40px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezados principales */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#00B7CD,#7EDCE8);
+color:#FFFFFF;
+border-radius:16px;
+box-shadow:0 8px 25px rgba(0,183,205,.25);
+}
+
+/* Título */
+.titulo{
+color:#FFFFFF !important;
+text-shadow:0 2px 8px rgba(94,49,34,.35);
+}
+
+/* Paneles */
+.panel,
+.card,
+.contenedor,
+.box{
+background:rgba(255,255,255,.92);
+border:1px solid rgba(0,183,205,.25);
+box-shadow:0 6px 20px rgba(94,49,34,.12);
+color:#5E3122;
+}
+
+/* Labels de bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#00B7CD,#9BE3ED);
+color:#FFFFFF;
+border:1px solid rgba(255,255,255,.8);
+box-shadow:0 4px 15px rgba(0,183,205,.25);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#FFF1D1,#FFD8A8);
+color:#5E3122;
+border-left:5px solid #FF9100;
+box-shadow:0 5px 18px rgba(255,145,0,.18);
+}
+
+/* Botones */
+button{
+background:
+linear-gradient(135deg,#FF9100,#DF301C);
+color:white;
+border:none;
+box-shadow:0 4px 12px rgba(223,48,28,.25);
+}
+
+button:hover{
+filter:brightness(1.05);
+}
+
+
+/* ===== VERSION PALETA ARMONICA CON FF9A00 ===== */
+
+body{
+background:
+linear-gradient(135deg,#FFFFFF 0%,#FFF4E5 35%,#DDF7FA 100%);
+color:#5E3122;
+}
+
+/* Grid suave futurista */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(0,183,205,.10) 1px,transparent 1px),
+linear-gradient(90deg,rgba(0,183,205,.10) 1px,transparent 1px);
+background-size:38px 38px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezados */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#00B7CD 0%,#5ED5E5 55%,#FFFFFF 100%);
+color:#FFFFFF;
+box-shadow:0 8px 22px rgba(0,183,205,.25);
+}
+
+/* Titulo */
+.titulo{
+color:#FFFFFF !important;
+text-shadow:0 2px 8px rgba(94,49,34,.35);
+}
+
+/* Paneles generales */
+.panel,
+.card,
+.contenedor,
+.box{
+background:rgba(255,255,255,.94);
+border:1px solid rgba(0,183,205,.25);
+box-shadow:0 6px 20px rgba(94,49,34,.12);
+}
+
+/* Zonas */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#00B7CD,#8BE4EE);
+color:#FFFFFF;
+border-radius:12px;
+box-shadow:0 5px 14px rgba(0,183,205,.25);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#FFF1D1,#FF9A00);
+color:#5E3122;
+border-left:5px solid #FF9A00;
+}
+
+/* Botones */
+button{
+background:
+linear-gradient(135deg,#FF9A00,#DF301C);
+color:#FFFFFF;
+box-shadow:0 5px 14px rgba(255,154,0,.35);
+}
+
+/* Estados visuales */
+.realizado{
+box-shadow:0 0 12px rgba(0,183,205,.35);
+}
+
+.pendiente{
+box-shadow:0 0 12px rgba(223,48,28,.25);
+}
+
+
+/* ===== CAMBIO ENCABEZADO AMARILLO/NARANJA + FONDO ROJO GRID ===== */
+
+/* Fondo principal con rojo DF301C */
+body{
+background:
+linear-gradient(135deg,
+rgba(223,48,28,.92),
+rgba(239,105,5,.75)),
+#DF301C;
+color:#5E3122;
+}
+
+/* Grid sobre fondo rojo */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,241,209,.18) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,241,209,.18) 1px,transparent 1px);
+background-size:38px 38px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezados con los amarillos/naranjas */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#FF9A00 0%,#FF9100 45%,#EF6905 100%);
+color:#FFFFFF;
+box-shadow:
+0 8px 25px rgba(94,49,34,.35),
+0 0 20px rgba(255,154,0,.45);
+}
+
+/* Titulo */
+.titulo{
+color:#FFFFFF !important;
+text-shadow:0 2px 8px rgba(94,49,34,.45);
+}
+
+/* Paneles blancos para mantener lectura */
+.panel,
+.card,
+.contenedor,
+.box{
+background:rgba(255,255,255,.94);
+border:1px solid rgba(255,241,209,.8);
+box-shadow:0 8px 25px rgba(94,49,34,.25);
+}
+
+/* Bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#FF9A00,#EF6905);
+color:#FFFFFF;
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#FFF1D1,#FF9A00);
+color:#5E3122;
+}
+
+
+/* ===== PALETA UNICA DF301C FF9100 FF9A00 FFFC8C BLANCO ===== */
+
+/* Fondo principal */
+body{
+background:
+linear-gradient(135deg,#DF301C 0%,#FF9100 55%,#FF9A00 100%);
+color:#FFFFFF;
+}
+
+/* Grid tecnológico usando solo la paleta */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,252,140,.22) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,252,140,.22) 1px,transparent 1px);
+background-size:36px 36px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezado */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#FFFC8C 0%,#FF9A00 45%,#FF9100 100%);
+color:#FFFFFF;
+text-shadow:
+0 2px 4px #DF301C,
+0 4px 10px rgba(223,48,28,.55);
+box-shadow:
+0 8px 25px rgba(223,48,28,.35);
+}
+
+/* Titulo */
+.titulo{
+color:#FFFFFF !important;
+text-shadow:
+0 2px 3px #DF301C,
+0 0 12px #FF9100;
+}
+
+/* Paneles */
+.panel,
+.card,
+.contenedor,
+.box{
+background:#FFFFFF;
+color:#DF301C;
+border:2px solid #FFFC8C;
+box-shadow:
+0 8px 25px rgba(94,49,34,.25);
+}
+
+/* Labels de bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#FF9A00,#FF9100,#DF301C);
+color:#FFFFFF;
+text-shadow:0 2px 4px #DF301C;
+box-shadow:0 0 15px rgba(255,252,140,.6);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#FFFC8C,#FF9A00);
+color:#DF301C;
+text-shadow:none;
+}
+
+/* Botones */
+button{
+background:
+linear-gradient(135deg,#DF301C,#FF9100,#FF9A00);
+color:#FFFFFF;
+text-shadow:0 2px 3px #DF301C;
+border:1px solid #FFFC8C;
+box-shadow:0 5px 15px rgba(223,48,28,.4);
+}
+
+
+/* ===== CORRECCION FONDO AZUL - PALETA SOLO SOLICITADA ===== */
+
+/* Eliminar tonos azules del fondo general */
+body{
+background:
+linear-gradient(135deg,#DF301C 0%,#FF9100 55%,#FF9A00 100%) !important;
+color:#FFFFFF;
+}
+
+/* Grid usando solo amarillo suave */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,252,140,.18) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,252,140,.18) 1px,transparent 1px);
+background-size:35px 35px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Cajas principales con rojo oscuro y degradado */
+.panel,
+.card,
+.contenedor,
+.box{
+background:
+linear-gradient(135deg,#DF301C,#8F1F14) !important;
+color:#FFFFFF !important;
+border:1px solid #FFFC8C;
+box-shadow:0 8px 22px rgba(0,0,0,.25);
+}
+
+/* Encabezados de cajas */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#DF301C,#FF9100,#FF9A00) !important;
+color:#FFFFFF !important;
+}
+
+/* Labels de bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#DF301C,#FF9100) !important;
+color:#FFFFFF !important;
+text-shadow:0 2px 4px rgba(0,0,0,.35);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#DF301C,#FF9100) !important;
+color:#FFFFFF !important;
+}
+
+/* Textos dentro de cajas */
+.panel *,
+.card *,
+.contenedor *,
+.box *,
+.zona-label *,
+.base-label *,
+.firmas-base-header *{
+color:#FFFFFF;
+}
+
+
+/* CORRECCION ELIMINAR AZULES OSCUROS RESTANTES */
+.item,
+.firma-item,
+.lista-item,
+.resultado-item,
+.lead-item{
+background:linear-gradient(135deg,#DF301C,#8F1F14) !important;
+color:#FFFFFF !important;
+border-left:5px solid #FF9A00 !important;
+box-shadow:0 4px 10px rgba(0,0,0,.25);
+}
+
+.item *,
+.firma-item *,
+.lista-item *,
+.resultado-item *,
+.lead-item *{
+color:#FFFFFF !important;
+}
+
+/* Encabezado con rojo oscuro solicitado */
+.titulo-container,
+header,
+.encabezado,
+.firmas-base-header{
+background:
+linear-gradient(135deg,#8F1F14,#DF301C,#FF9100) !important;
+color:#FFFFFF !important;
+text-shadow:0 2px 4px rgba(0,0,0,.45);
+}
+
+/* Recuadro de firmas */
+.firmas-base{
+background:
+linear-gradient(135deg,#DF301C,#8F1F14) !important;
+}
+
+
+/* AJUSTE FINAL: ELIMINAR CUALQUIER FONDO AZUL MARINO RESTANTE */
+#lista .item,
+#lista .firma-item,
+#lista .lista-item,
+#lista .resultado-item,
+#lista .lead-item,
+#lista > div,
+.item.realizada,
+.item.pendiente,
+.item{
+background:#8F1F14 !important;
+background-image:linear-gradient(135deg,#DF301C 0%,#8F1F14 100%) !important;
+color:#FFFFFF !important;
+border:1px solid #FF9A00 !important;
+border-left:6px solid #FFFC8C !important;
+box-shadow:0 4px 10px rgba(0,0,0,.22) !important;
+}
+
+#lista .item *,
+#lista .firma-item *,
+#lista .lista-item *,
+#lista .resultado-item *,
+#lista .lead-item *,
+#lista > div *{
+color:#FFFFFF !important;
+}
+
+#lista .item:hover,
+#lista .firma-item:hover,
+#lista > div:hover{
+background:#A32417 !important;
+background-image:linear-gradient(135deg,#FF9100 0%,#DF301C 55%,#8F1F14 100%) !important;
+}
+
+/* Fondo del panel de firmas */
+#lista{
+background:transparent !important;
+}
+
+.card,
+.panel,
+.contenedor,
+.box,
+.firmas-base,
+.firmas-base-header{
+background-image:linear-gradient(135deg,#DF301C 0%,#8F1F14 100%) !important;
+color:#FFFFFF !important;
+}
+
+/* Buscador más armónico */
+.buscar,
+input[type="text"],
+input[type="search"]{
+background:#FFF1D1 !important;
+color:#5E3122 !important;
+border:1px solid #FF9A00 !important;
+}
+
+/* Encabezado más rojo oscuro */
+header,
+.encabezado,
+.titulo-container{
+background:#8F1F14 !important;
+background-image:linear-gradient(135deg,#8F1F14 0%,#DF301C 55%,#FF9100 100%) !important;
+color:#FFFFFF !important;
+}
+
+
+/* CORRECCION: ELIMINAR RESTOS AZUL MARINO - SOLO DISEÑO */
+
+/* Reemplazo de fondos oscuros heredados */
+html,
+body{
+background:
+linear-gradient(135deg,#DF301C 0%,#FF9100 55%,#FF9A00 100%) !important;
+}
+
+/* Contenedores internos que aún puedan tener azul */
+div,
+section,
+article,
+aside{
+}
+
+/* Lista de firmas sin tonos azul oscuro */
+.firma,
+.firma-card,
+.item,
+.lista-firma,
+.firma-item,
+.card-firma,
+#lista div{
+background:
+linear-gradient(135deg,#DF301C,#8F1F14) !important;
+color:#FFFFFF !important;
+}
+
+/* Estados de texto */
+.firma *,
+.firma-card *,
+.item *,
+.lista-firma *,
+.firma-item *,
+.card-firma *,
+#lista div *{
+color:#FFFFFF !important;
+}
+
+/* Cajas principales */
+.panel,
+.card,
+.box,
+.contenedor{
+background:
+linear-gradient(135deg,#DF301C,#8F1F14) !important;
+}
+
+/* Evitar colores azulados heredados */
+[class*="dark"],
+[class*="blue"],
+[class*="navy"]{
+background-color:#8F1F14 !important;
+color:#FFFFFF !important;
+}
+
+
+/* ===== NUEVA PALETA AZUL UNICA ===== */
+/* Colores:
+#0D47A1 azul profundo
+#2196F3 azul principal
+#90CAF9 azul claro
+#2F2FE4 azul eléctrico
+Blanco para textos
+*/
+
+body{
+background:
+linear-gradient(135deg,#0D47A1 0%,#2196F3 55%,#90CAF9 100%) !important;
+color:#FFFFFF !important;
+}
+
+/* Grid tecnológico azul */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,255,255,.18) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.18) 1px,transparent 1px);
+background-size:35px 35px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezados */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#0D47A1,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+text-shadow:0 2px 5px rgba(0,0,0,.35);
+}
+
+/* Paneles */
+.panel,
+.card,
+.box,
+.contenedor{
+background:
+linear-gradient(135deg,#2196F3,#0D47A1) !important;
+color:#FFFFFF !important;
+border:1px solid #90CAF9 !important;
+box-shadow:0 8px 22px rgba(13,71,161,.45);
+}
+
+/* Bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+border:1px solid #90CAF9;
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#0D47A1,#2196F3) !important;
+color:#FFFFFF !important;
+}
+
+/* Tarjetas de firmas */
+.item,
+.firma-item,
+.lista-item,
+.card-firma,
+#lista div{
+background:
+linear-gradient(135deg,#0D47A1,#2F2FE4) !important;
+color:#FFFFFF !important;
+border-color:#90CAF9 !important;
+}
+
+.item *,
+.firma-item *,
+.lista-item *,
+.card-firma *,
+#lista div *{
+color:#FFFFFF !important;
+}
+
+/* Buscadores */
+input,
+.buscar{
+background:#90CAF9 !important;
+color:#0D47A1 !important;
+border:1px solid #FFFFFF !important;
+}
+
+/* Botones */
+button{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+border:1px solid #90CAF9 !important;
+box-shadow:0 5px 15px rgba(47,47,228,.45);
+}
+
+
+/* CORRECCION SOMBRA DE TEXTO NEGRA */
+.titulo,
+header *,
+.encabezado *,
+.titulo-container *,
+.zona-label *,
+.base-label *,
+.firmas-base-header *,
+.item *,
+.firma-item *,
+.lista-item *,
+.card-firma *{
+text-shadow:
+0 2px 4px rgba(0,0,0,.75) !important;
+}
+
+/* Eliminar sombras rojizas heredadas */
+text-shadow{
+color:inherit;
+}
+
+
+/* ===== CORRECCION CAJAS DE BASES Y LISTAS CON PALETA AZUL ===== */
+/* Paleta:
+#0D47A1 azul profundo
+#2196F3 azul principal
+#90CAF9 azul claro
+#2F2FE4 azul eléctrico
+blanco texto
+*/
+
+.zona-label,
+.base-label,
+#listaBase .item,
+#listaBase .firma-item,
+#listaBase .lista-item,
+#lista .item,
+#lista .firma-item,
+#lista .lista-item,
+.item.pendiente,
+.item.realizada{
+background:
+linear-gradient(135deg,#0D47A1 0%,#2F2FE4 55%,#2196F3 100%) !important;
+color:#FFFFFF !important;
+border:1px solid #90CAF9 !important;
+box-shadow:0 5px 15px rgba(13,71,161,.45) !important;
+}
+
+.zona-label *,
+.base-label *,
+#listaBase *,
+#lista *,
+.item *,
+.firma-item *,
+.lista-item *{
+color:#FFFFFF !important;
+text-shadow:0 2px 4px rgba(0,0,0,.75) !important;
+}
+
+/* Diferenciar estados sin salir de la gama */
+.item.pendiente{
+background:
+linear-gradient(135deg,#0D47A1,#2F2FE4) !important;
+}
+
+.item.realizada{
+background:
+linear-gradient(135deg,#2196F3,#90CAF9) !important;
+color:#FFFFFF !important;
+}
+
+/* Cuadro general de selección de bases */
+.panel-bases,
+.bases-container,
+#bases{
+background:
+linear-gradient(135deg,#0D47A1,#2196F3) !important;
+border:1px solid #90CAF9 !important;
+}
+
+
+/* CORRECCION SOMBRA NEGRA EN TEXTOS DE BASES */
+.zona-label,
+.base-label,
+.zona-label *,
+.base-label *,
+#bases *,
+.panel-bases *{
+text-shadow:
+0 2px 4px rgba(0,0,0,.85) !important;
+}
+
+/* eliminar sombras de color heredadas */
+.zona-label,
+.base-label{
+filter:none !important;
+}
+
+
+/* ===== REDISEÑO DASHBOARD PREMIUM ESTILO BI ===== */
+/* Inspirado en dashboards corporativos: fondo oscuro, tarjetas limpias, morados/azules */
+
+body{
+background:
+linear-gradient(135deg,#15102F 0%,#24165A 45%,#0D47A1 100%) !important;
+color:#FFFFFF !important;
+}
+
+/* Grid tecnológico sutil */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+background-size:32px 32px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Paneles tipo dashboard */
+.panel,
+.card,
+.box,
+.contenedor,
+.panel-bases,
+.bases-container{
+background:
+linear-gradient(145deg,rgba(255,255,255,.96),rgba(238,240,255,.95)) !important;
+color:#25175A !important;
+border:1px solid rgba(255,255,255,.7);
+border-radius:20px !important;
+box-shadow:
+0 15px 35px rgba(0,0,0,.25);
+}
+
+/* Encabezados estilo BI */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3,#90CAF9) !important;
+color:#FFFFFF !important;
+border-radius:0 0 24px 24px;
+box-shadow:0 10px 30px rgba(47,47,228,.45);
+}
+
+.titulo{
+color:#FFFFFF !important;
+text-shadow:0 3px 8px rgba(0,0,0,.7) !important;
+}
+
+/* Tarjetas de bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+border-radius:14px !important;
+box-shadow:0 8px 18px rgba(47,47,228,.35);
+text-shadow:0 2px 5px rgba(0,0,0,.7) !important;
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#0D47A1,#2F2FE4) !important;
+color:#FFFFFF !important;
+border-radius:18px 18px 0 0;
+}
+
+/* Buscador */
+input,
+.buscar{
+background:#FFFFFF !important;
+color:#0D47A1 !important;
+border-radius:14px !important;
+border:2px solid #90CAF9 !important;
+}
+
+/* Lista de firmas tipo tarjeta BI */
+.item,
+.firma-item,
+.lista-item,
+.card-firma,
+#lista div{
+background:
+linear-gradient(145deg,#FFFFFF,#E3F2FD) !important;
+color:#0D47A1 !important;
+border-radius:14px !important;
+border-left:6px solid #2F2FE4 !important;
+box-shadow:0 6px 15px rgba(0,0,0,.15);
+}
+
+.item *,
+.firma-item *,
+.lista-item *,
+.card-firma *,
+#lista div *{
+color:#0D47A1 !important;
+text-shadow:none !important;
+}
+
+/* Estado pendiente */
+.pendiente{
+border-left-color:#DF301C !important;
+}
+
+/* Estado realizado */
+.realizada{
+border-left-color:#2196F3 !important;
+}
+
+/* Botones estilo dashboard */
+button{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+border-radius:14px !important;
+box-shadow:0 8px 20px rgba(47,47,228,.4);
+}
+
+/* Efecto tarjeta */
+.panel:hover,
+.card:hover{
+transform:translateY(-2px);
+transition:.25s ease;
+}
+
+</style>
+</head>
+<body>
+
+<div class="fecha">
+Fecha: ${new Date().toLocaleString()}
+</div>
+
+<h1>Control de Firmas de Cuaderno GIS</h1>
+
+<div class="resumen">
+<h2>Resumen de Zona por Base</h2>
+
+<table>
+<tr>
+<th>Base</th>
+<th>Total</th>
+<th>Realizadas</th>
+<th>Pendientes</th>
+<th>Avance</th>
+</tr>
+
+${filas}
+
+</table>
+</div>
+
+<h2>Firmas Pendientes</h2>
+
+<table>
+<tr>
+<th>Base</th>
+<th>Dirección</th>
+</tr>
+
+${listaPendientes}
+
+</table>
+
+</body>
+</html>`;
+
+let blob=new Blob([html],{type:"text/html"});
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="Reporte_Firmas_Cuaderno_"+new Date().toISOString().slice(0,10)+".html";
+a.click();
+
+}).join("");
+
+let pendientes=datos.filter(x=>!x.ok).map(x=>`
+<tr>
+<td>${x.base}</td>
+<td>${x.dir}</td>
+<td>${x.lat}</td>
+<td>${x.lng}</td>
+</tr>
+`).join("");
+
+let contenido=`
+<html>
+<head>
+<title>Reporte Firmas de Cuaderno</title>
+<style>
+body{
+font-family:Arial,Helvetica,sans-serif;
+padding:35px;
+color:#1f2937;
+}
+h1{
+text-align:center;
+color:#075985;
+}
+.fecha{
+position:absolute;
+right:35px;
+top:25px;
+font-size:12px;
+}
+.resumen{
+margin-top:40px;
+background:#fef3c7;
+padding:20px;
+border-radius:12px;
+}
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:15px;
+}
+th{
+background:#075985;
+color:white;
+}
+td,th{
+border:1px solid #ccc;
+padding:8px;
+text-align:center;
+}
+.pendiente{
+background:#fee2e2;
+}
+
+
+
+
+100%{
+opacity:0;
+transform:scale(.2) translate(var(--movx),var(--movy));
+}
+}
+
+
+
+
+@keyframes energiaChispa{
+0%{
+opacity:1;
+transform:translate(0,0) rotate(0deg) scale(1);
+}
+70%{
+opacity:1;
+}
+100%{
+opacity:0;
+transform:
+translate(var(--x),var(--y))
+rotate(var(--r))
+scale(.2);
+}
+}
+
+
+
+@keyframes ondaEnergia{
+from{
+transform:scale(.2);
+opacity:1;
+}
+to{
+transform:scale(4);
+opacity:0;
+}
+}
+
+
+
+
+100%{
+opacity:0;
+transform:translate(var(--dx),var(--dy)) scale(0);
+}
+}
+
+
+
+
+100%{transform:scale(5);opacity:0}
+}
+
+.chispa{
+position:fixed;
+width:4px;
+height:4px;
+border-radius:50%;
+background:radial-gradient(circle,#ffffff,#fde047,#f59e0b);
+pointer-events:none;
+z-index:99999;
+box-shadow:0 0 6px #facc15,0 0 12px #fff;
+animation:particulaRapida .45s ease-out forwards;
+}
+
+@keyframes particulaRapida{
+0%{
+opacity:1;
+transform:translate(0,0) scale(1.8);
+}
+100%{
+opacity:0;
+transform:translate(var(--x),var(--y)) scale(.1);
+}
+}
+
+/* EFECTO CURSOR ENERGIA */
+.cursorParticula{
+position:fixed;
+width:6px;
+height:6px;
+background:#facc15;
+border-radius:50%;
+pointer-events:none;
+z-index:999999;
+box-shadow:0 0 8px #fff,0 0 15px #facc15;
+animation:salidaParticula .7s ease-out forwards;
+}
+
+@keyframes salidaParticula{
+0%{
+opacity:1;
+transform:translate(0,0) scale(1);
+}
+100%{
+opacity:0;
+transform:translate(var(--tx),var(--ty)) scale(0);
+}
+}
+
+.destelloClick{
+position:fixed;
+width:15px;
+height:15px;
+border-radius:50%;
+border:2px solid #fde047;
+pointer-events:none;
+z-index:999998;
+animation:ondaClick .5s ease-out forwards;
+}
+
+@keyframes ondaClick{
+0%{opacity:1;transform:scale(.5)}
+100%{opacity:0;transform:scale(4)}
+}
+
+
+.titulo{
+font-family: "Great Vibes", cursive !important;
+font-size: 54px !important;
+font-weight: 400 !important;
+font-style: normal !important;
+letter-spacing: 1px;
+color: #ffffff !important;
+text-align: center;
+line-height: 1;
+text-shadow: 0 0 10px #ffffff, 0 0 25px rgba(255,255,255,.8);
+}
+
+
+/* GRID DEGRADADO PARA LABELS DE ZONAS */
+.zona-label, .base-label, .titulo-base{
+background:
+linear-gradient(135deg,rgba(56,189,248,.95),rgba(30,64,175,.95));
+background-image:
+linear-gradient(rgba(255,255,255,.12) 1px, transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.12) 1px, transparent 1px),
+linear-gradient(135deg,#38bdf8,#1e40af);
+background-size:22px 22px,22px 22px,100% 100%;
+border-radius:10px;
+padding:8px;
+box-shadow:0 0 12px rgba(56,189,248,.7);
+font-weight:bold;
+}
+
+/* VARIACION GRID PARA FIRMAS POR BASE */
+.firmas-base-header{
+background:
+linear-gradient(135deg,rgba(14,116,144,.95),rgba(59,130,246,.95));
+background-image:
+linear-gradient(rgba(255,255,255,.10) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.10) 1px,transparent 1px),
+linear-gradient(135deg,#0e7490,#2563eb);
+background-size:16px 16px,16px 16px,100% 100%;
+border-radius:12px;
+padding:10px;
+box-shadow:0 0 15px rgba(14,165,233,.6);
+}
+
+
+/* GRID ESTETICO VISIBLE PARA LABELS */
+.grid-estetico-zona{
+position:relative;
+overflow:hidden;
+background:
+linear-gradient(135deg,#38bdf8,#1d4ed8);
+}
+
+.grid-estetico-zona::before{
+content:"";
+position:absolute;
+inset:0;
+background-image:
+linear-gradient(rgba(255,255,255,.20) 1px, transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.20) 1px, transparent 1px);
+background-size:18px 18px;
+opacity:.55;
+pointer-events:none;
+}
+
+.grid-estetico-zona > *{
+position:relative;
+z-index:2;
+}
+
+
+/* GRID DIFERENTE PARA FIRMAS POR BASE */
+.grid-estetico-firmas{
+position:relative;
+overflow:hidden;
+background:
+linear-gradient(135deg,#0891b2,#2563eb);
+}
+
+.grid-estetico-firmas::before{
+content:"";
+position:absolute;
+inset:0;
+background-image:
+linear-gradient(rgba(255,255,255,.16) 1px, transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.16) 1px, transparent 1px);
+background-size:12px 12px;
+opacity:.6;
+pointer-events:none;
+}
+
+.grid-estetico-firmas > *{
+position:relative;
+z-index:2;
+}
+
+
+/* PALETA NUEVA - DISEÑO VISUAL */
+body{
+background:
+linear-gradient(135deg,#FFF1D1 0%,#00B7CD 100%);
+}
+
+/* GRID GENERAL */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(94,49,34,.10) 1px,transparent 1px),
+linear-gradient(90deg,rgba(94,49,34,.10) 1px,transparent 1px);
+background-size:35px 35px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Panel de bases */
+.panel,
+.card,
+.contenedor,
+.box{
+background:rgba(255,241,209,.92);
+border:2px solid rgba(0,183,205,.45);
+box-shadow:0 8px 25px rgba(94,49,34,.18);
+}
+
+/* Bases MAYORAZGO SALAMANCA ETC */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#00B7CD,#FF9100);
+color:#FFF1D1;
+border:2px solid #DF301C;
+box-shadow:
+0 0 15px rgba(0,183,205,.7),
+0 5px 15px rgba(94,49,34,.25);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#5E3122,#DF301C);
+color:#FFF1D1;
+border:2px solid #FF9100;
+box-shadow:0 0 18px rgba(255,145,0,.55);
+}
+
+/* Botones */
+button{
+background:linear-gradient(135deg,#DF301C,#FF9100);
+color:#FFF1D1;
+border:none;
+}
+
+button:hover{
+box-shadow:0 0 15px #FF9100;
+}
+
+
+/* ===== NUEVA ARMONIA VISUAL - LIMPIA Y SUAVE ===== */
+
+/* Fondo general */
+body{
+background:
+linear-gradient(135deg,#FFFDF8 0%,#E6F7FA 45%,#D6EEF8 100%);
+color:#5E3122;
+}
+
+/* Grid elegante */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(0,183,205,.10) 1px,transparent 1px),
+linear-gradient(90deg,rgba(0,183,205,.10) 1px,transparent 1px);
+background-size:40px 40px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezados principales */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#00B7CD,#7EDCE8);
+color:#FFFFFF;
+border-radius:16px;
+box-shadow:0 8px 25px rgba(0,183,205,.25);
+}
+
+/* Título */
+.titulo{
+color:#FFFFFF !important;
+text-shadow:0 2px 8px rgba(94,49,34,.35);
+}
+
+/* Paneles */
+.panel,
+.card,
+.contenedor,
+.box{
+background:rgba(255,255,255,.92);
+border:1px solid rgba(0,183,205,.25);
+box-shadow:0 6px 20px rgba(94,49,34,.12);
+color:#5E3122;
+}
+
+/* Labels de bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#00B7CD,#9BE3ED);
+color:#FFFFFF;
+border:1px solid rgba(255,255,255,.8);
+box-shadow:0 4px 15px rgba(0,183,205,.25);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#FFF1D1,#FFD8A8);
+color:#5E3122;
+border-left:5px solid #FF9100;
+box-shadow:0 5px 18px rgba(255,145,0,.18);
+}
+
+/* Botones */
+button{
+background:
+linear-gradient(135deg,#FF9100,#DF301C);
+color:white;
+border:none;
+box-shadow:0 4px 12px rgba(223,48,28,.25);
+}
+
+button:hover{
+filter:brightness(1.05);
+}
+
+
+/* ===== VERSION PALETA ARMONICA CON FF9A00 ===== */
+
+body{
+background:
+linear-gradient(135deg,#FFFFFF 0%,#FFF4E5 35%,#DDF7FA 100%);
+color:#5E3122;
+}
+
+/* Grid suave futurista */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(0,183,205,.10) 1px,transparent 1px),
+linear-gradient(90deg,rgba(0,183,205,.10) 1px,transparent 1px);
+background-size:38px 38px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezados */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#00B7CD 0%,#5ED5E5 55%,#FFFFFF 100%);
+color:#FFFFFF;
+box-shadow:0 8px 22px rgba(0,183,205,.25);
+}
+
+/* Titulo */
+.titulo{
+color:#FFFFFF !important;
+text-shadow:0 2px 8px rgba(94,49,34,.35);
+}
+
+/* Paneles generales */
+.panel,
+.card,
+.contenedor,
+.box{
+background:rgba(255,255,255,.94);
+border:1px solid rgba(0,183,205,.25);
+box-shadow:0 6px 20px rgba(94,49,34,.12);
+}
+
+/* Zonas */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#00B7CD,#8BE4EE);
+color:#FFFFFF;
+border-radius:12px;
+box-shadow:0 5px 14px rgba(0,183,205,.25);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#FFF1D1,#FF9A00);
+color:#5E3122;
+border-left:5px solid #FF9A00;
+}
+
+/* Botones */
+button{
+background:
+linear-gradient(135deg,#FF9A00,#DF301C);
+color:#FFFFFF;
+box-shadow:0 5px 14px rgba(255,154,0,.35);
+}
+
+/* Estados visuales */
+.realizado{
+box-shadow:0 0 12px rgba(0,183,205,.35);
+}
+
+.pendiente{
+box-shadow:0 0 12px rgba(223,48,28,.25);
+}
+
+
+/* ===== CAMBIO ENCABEZADO AMARILLO/NARANJA + FONDO ROJO GRID ===== */
+
+/* Fondo principal con rojo DF301C */
+body{
+background:
+linear-gradient(135deg,
+rgba(223,48,28,.92),
+rgba(239,105,5,.75)),
+#DF301C;
+color:#5E3122;
+}
+
+/* Grid sobre fondo rojo */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,241,209,.18) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,241,209,.18) 1px,transparent 1px);
+background-size:38px 38px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezados con los amarillos/naranjas */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#FF9A00 0%,#FF9100 45%,#EF6905 100%);
+color:#FFFFFF;
+box-shadow:
+0 8px 25px rgba(94,49,34,.35),
+0 0 20px rgba(255,154,0,.45);
+}
+
+/* Titulo */
+.titulo{
+color:#FFFFFF !important;
+text-shadow:0 2px 8px rgba(94,49,34,.45);
+}
+
+/* Paneles blancos para mantener lectura */
+.panel,
+.card,
+.contenedor,
+.box{
+background:rgba(255,255,255,.94);
+border:1px solid rgba(255,241,209,.8);
+box-shadow:0 8px 25px rgba(94,49,34,.25);
+}
+
+/* Bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#FF9A00,#EF6905);
+color:#FFFFFF;
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#FFF1D1,#FF9A00);
+color:#5E3122;
+}
+
+
+/* ===== PALETA UNICA DF301C FF9100 FF9A00 FFFC8C BLANCO ===== */
+
+/* Fondo principal */
+body{
+background:
+linear-gradient(135deg,#DF301C 0%,#FF9100 55%,#FF9A00 100%);
+color:#FFFFFF;
+}
+
+/* Grid tecnológico usando solo la paleta */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,252,140,.22) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,252,140,.22) 1px,transparent 1px);
+background-size:36px 36px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezado */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#FFFC8C 0%,#FF9A00 45%,#FF9100 100%);
+color:#FFFFFF;
+text-shadow:
+0 2px 4px #DF301C,
+0 4px 10px rgba(223,48,28,.55);
+box-shadow:
+0 8px 25px rgba(223,48,28,.35);
+}
+
+/* Titulo */
+.titulo{
+color:#FFFFFF !important;
+text-shadow:
+0 2px 3px #DF301C,
+0 0 12px #FF9100;
+}
+
+/* Paneles */
+.panel,
+.card,
+.contenedor,
+.box{
+background:#FFFFFF;
+color:#DF301C;
+border:2px solid #FFFC8C;
+box-shadow:
+0 8px 25px rgba(94,49,34,.25);
+}
+
+/* Labels de bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#FF9A00,#FF9100,#DF301C);
+color:#FFFFFF;
+text-shadow:0 2px 4px #DF301C;
+box-shadow:0 0 15px rgba(255,252,140,.6);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#FFFC8C,#FF9A00);
+color:#DF301C;
+text-shadow:none;
+}
+
+/* Botones */
+button{
+background:
+linear-gradient(135deg,#DF301C,#FF9100,#FF9A00);
+color:#FFFFFF;
+text-shadow:0 2px 3px #DF301C;
+border:1px solid #FFFC8C;
+box-shadow:0 5px 15px rgba(223,48,28,.4);
+}
+
+
+/* ===== CORRECCION FONDO AZUL - PALETA SOLO SOLICITADA ===== */
+
+/* Eliminar tonos azules del fondo general */
+body{
+background:
+linear-gradient(135deg,#DF301C 0%,#FF9100 55%,#FF9A00 100%) !important;
+color:#FFFFFF;
+}
+
+/* Grid usando solo amarillo suave */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,252,140,.18) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,252,140,.18) 1px,transparent 1px);
+background-size:35px 35px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Cajas principales con rojo oscuro y degradado */
+.panel,
+.card,
+.contenedor,
+.box{
+background:
+linear-gradient(135deg,#DF301C,#8F1F14) !important;
+color:#FFFFFF !important;
+border:1px solid #FFFC8C;
+box-shadow:0 8px 22px rgba(0,0,0,.25);
+}
+
+/* Encabezados de cajas */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#DF301C,#FF9100,#FF9A00) !important;
+color:#FFFFFF !important;
+}
+
+/* Labels de bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#DF301C,#FF9100) !important;
+color:#FFFFFF !important;
+text-shadow:0 2px 4px rgba(0,0,0,.35);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#DF301C,#FF9100) !important;
+color:#FFFFFF !important;
+}
+
+/* Textos dentro de cajas */
+.panel *,
+.card *,
+.contenedor *,
+.box *,
+.zona-label *,
+.base-label *,
+.firmas-base-header *{
+color:#FFFFFF;
+}
+
+
+/* CORRECCION ELIMINAR AZULES OSCUROS RESTANTES */
+.item,
+.firma-item,
+.lista-item,
+.resultado-item,
+.lead-item{
+background:linear-gradient(135deg,#DF301C,#8F1F14) !important;
+color:#FFFFFF !important;
+border-left:5px solid #FF9A00 !important;
+box-shadow:0 4px 10px rgba(0,0,0,.25);
+}
+
+.item *,
+.firma-item *,
+.lista-item *,
+.resultado-item *,
+.lead-item *{
+color:#FFFFFF !important;
+}
+
+/* Encabezado con rojo oscuro solicitado */
+.titulo-container,
+header,
+.encabezado,
+.firmas-base-header{
+background:
+linear-gradient(135deg,#8F1F14,#DF301C,#FF9100) !important;
+color:#FFFFFF !important;
+text-shadow:0 2px 4px rgba(0,0,0,.45);
+}
+
+/* Recuadro de firmas */
+.firmas-base{
+background:
+linear-gradient(135deg,#DF301C,#8F1F14) !important;
+}
+
+
+/* AJUSTE FINAL: ELIMINAR CUALQUIER FONDO AZUL MARINO RESTANTE */
+#lista .item,
+#lista .firma-item,
+#lista .lista-item,
+#lista .resultado-item,
+#lista .lead-item,
+#lista > div,
+.item.realizada,
+.item.pendiente,
+.item{
+background:#8F1F14 !important;
+background-image:linear-gradient(135deg,#DF301C 0%,#8F1F14 100%) !important;
+color:#FFFFFF !important;
+border:1px solid #FF9A00 !important;
+border-left:6px solid #FFFC8C !important;
+box-shadow:0 4px 10px rgba(0,0,0,.22) !important;
+}
+
+#lista .item *,
+#lista .firma-item *,
+#lista .lista-item *,
+#lista .resultado-item *,
+#lista .lead-item *,
+#lista > div *{
+color:#FFFFFF !important;
+}
+
+#lista .item:hover,
+#lista .firma-item:hover,
+#lista > div:hover{
+background:#A32417 !important;
+background-image:linear-gradient(135deg,#FF9100 0%,#DF301C 55%,#8F1F14 100%) !important;
+}
+
+/* Fondo del panel de firmas */
+#lista{
+background:transparent !important;
+}
+
+.card,
+.panel,
+.contenedor,
+.box,
+.firmas-base,
+.firmas-base-header{
+background-image:linear-gradient(135deg,#DF301C 0%,#8F1F14 100%) !important;
+color:#FFFFFF !important;
+}
+
+/* Buscador más armónico */
+.buscar,
+input[type="text"],
+input[type="search"]{
+background:#FFF1D1 !important;
+color:#5E3122 !important;
+border:1px solid #FF9A00 !important;
+}
+
+/* Encabezado más rojo oscuro */
+header,
+.encabezado,
+.titulo-container{
+background:#8F1F14 !important;
+background-image:linear-gradient(135deg,#8F1F14 0%,#DF301C 55%,#FF9100 100%) !important;
+color:#FFFFFF !important;
+}
+
+
+/* CORRECCION: ELIMINAR RESTOS AZUL MARINO - SOLO DISEÑO */
+
+/* Reemplazo de fondos oscuros heredados */
+html,
+body{
+background:
+linear-gradient(135deg,#DF301C 0%,#FF9100 55%,#FF9A00 100%) !important;
+}
+
+/* Contenedores internos que aún puedan tener azul */
+div,
+section,
+article,
+aside{
+}
+
+/* Lista de firmas sin tonos azul oscuro */
+.firma,
+.firma-card,
+.item,
+.lista-firma,
+.firma-item,
+.card-firma,
+#lista div{
+background:
+linear-gradient(135deg,#DF301C,#8F1F14) !important;
+color:#FFFFFF !important;
+}
+
+/* Estados de texto */
+.firma *,
+.firma-card *,
+.item *,
+.lista-firma *,
+.firma-item *,
+.card-firma *,
+#lista div *{
+color:#FFFFFF !important;
+}
+
+/* Cajas principales */
+.panel,
+.card,
+.box,
+.contenedor{
+background:
+linear-gradient(135deg,#DF301C,#8F1F14) !important;
+}
+
+/* Evitar colores azulados heredados */
+[class*="dark"],
+[class*="blue"],
+[class*="navy"]{
+background-color:#8F1F14 !important;
+color:#FFFFFF !important;
+}
+
+
+/* ===== NUEVA PALETA AZUL UNICA ===== */
+/* Colores:
+#0D47A1 azul profundo
+#2196F3 azul principal
+#90CAF9 azul claro
+#2F2FE4 azul eléctrico
+Blanco para textos
+*/
+
+body{
+background:
+linear-gradient(135deg,#0D47A1 0%,#2196F3 55%,#90CAF9 100%) !important;
+color:#FFFFFF !important;
+}
+
+/* Grid tecnológico azul */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,255,255,.18) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.18) 1px,transparent 1px);
+background-size:35px 35px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezados */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#0D47A1,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+text-shadow:0 2px 5px rgba(0,0,0,.35);
+}
+
+/* Paneles */
+.panel,
+.card,
+.box,
+.contenedor{
+background:
+linear-gradient(135deg,#2196F3,#0D47A1) !important;
+color:#FFFFFF !important;
+border:1px solid #90CAF9 !important;
+box-shadow:0 8px 22px rgba(13,71,161,.45);
+}
+
+/* Bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+border:1px solid #90CAF9;
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#0D47A1,#2196F3) !important;
+color:#FFFFFF !important;
+}
+
+/* Tarjetas de firmas */
+.item,
+.firma-item,
+.lista-item,
+.card-firma,
+#lista div{
+background:
+linear-gradient(135deg,#0D47A1,#2F2FE4) !important;
+color:#FFFFFF !important;
+border-color:#90CAF9 !important;
+}
+
+.item *,
+.firma-item *,
+.lista-item *,
+.card-firma *,
+#lista div *{
+color:#FFFFFF !important;
+}
+
+/* Buscadores */
+input,
+.buscar{
+background:#90CAF9 !important;
+color:#0D47A1 !important;
+border:1px solid #FFFFFF !important;
+}
+
+/* Botones */
+button{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+border:1px solid #90CAF9 !important;
+box-shadow:0 5px 15px rgba(47,47,228,.45);
+}
+
+
+/* CORRECCION SOMBRA DE TEXTO NEGRA */
+.titulo,
+header *,
+.encabezado *,
+.titulo-container *,
+.zona-label *,
+.base-label *,
+.firmas-base-header *,
+.item *,
+.firma-item *,
+.lista-item *,
+.card-firma *{
+text-shadow:
+0 2px 4px rgba(0,0,0,.75) !important;
+}
+
+/* Eliminar sombras rojizas heredadas */
+text-shadow{
+color:inherit;
+}
+
+
+/* ===== CORRECCION CAJAS DE BASES Y LISTAS CON PALETA AZUL ===== */
+/* Paleta:
+#0D47A1 azul profundo
+#2196F3 azul principal
+#90CAF9 azul claro
+#2F2FE4 azul eléctrico
+blanco texto
+*/
+
+.zona-label,
+.base-label,
+#listaBase .item,
+#listaBase .firma-item,
+#listaBase .lista-item,
+#lista .item,
+#lista .firma-item,
+#lista .lista-item,
+.item.pendiente,
+.item.realizada{
+background:
+linear-gradient(135deg,#0D47A1 0%,#2F2FE4 55%,#2196F3 100%) !important;
+color:#FFFFFF !important;
+border:1px solid #90CAF9 !important;
+box-shadow:0 5px 15px rgba(13,71,161,.45) !important;
+}
+
+.zona-label *,
+.base-label *,
+#listaBase *,
+#lista *,
+.item *,
+.firma-item *,
+.lista-item *{
+color:#FFFFFF !important;
+text-shadow:0 2px 4px rgba(0,0,0,.75) !important;
+}
+
+/* Diferenciar estados sin salir de la gama */
+.item.pendiente{
+background:
+linear-gradient(135deg,#0D47A1,#2F2FE4) !important;
+}
+
+.item.realizada{
+background:
+linear-gradient(135deg,#2196F3,#90CAF9) !important;
+color:#FFFFFF !important;
+}
+
+/* Cuadro general de selección de bases */
+.panel-bases,
+.bases-container,
+#bases{
+background:
+linear-gradient(135deg,#0D47A1,#2196F3) !important;
+border:1px solid #90CAF9 !important;
+}
+
+
+/* CORRECCION SOMBRA NEGRA EN TEXTOS DE BASES */
+.zona-label,
+.base-label,
+.zona-label *,
+.base-label *,
+#bases *,
+.panel-bases *{
+text-shadow:
+0 2px 4px rgba(0,0,0,.85) !important;
+}
+
+/* eliminar sombras de color heredadas */
+.zona-label,
+.base-label{
+filter:none !important;
+}
+
+
+/* ===== REDISEÑO DASHBOARD PREMIUM ESTILO BI ===== */
+/* Inspirado en dashboards corporativos: fondo oscuro, tarjetas limpias, morados/azules */
+
+body{
+background:
+linear-gradient(135deg,#15102F 0%,#24165A 45%,#0D47A1 100%) !important;
+color:#FFFFFF !important;
+}
+
+/* Grid tecnológico sutil */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+background-size:32px 32px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Paneles tipo dashboard */
+.panel,
+.card,
+.box,
+.contenedor,
+.panel-bases,
+.bases-container{
+background:
+linear-gradient(145deg,rgba(255,255,255,.96),rgba(238,240,255,.95)) !important;
+color:#25175A !important;
+border:1px solid rgba(255,255,255,.7);
+border-radius:20px !important;
+box-shadow:
+0 15px 35px rgba(0,0,0,.25);
+}
+
+/* Encabezados estilo BI */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3,#90CAF9) !important;
+color:#FFFFFF !important;
+border-radius:0 0 24px 24px;
+box-shadow:0 10px 30px rgba(47,47,228,.45);
+}
+
+.titulo{
+color:#FFFFFF !important;
+text-shadow:0 3px 8px rgba(0,0,0,.7) !important;
+}
+
+/* Tarjetas de bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+border-radius:14px !important;
+box-shadow:0 8px 18px rgba(47,47,228,.35);
+text-shadow:0 2px 5px rgba(0,0,0,.7) !important;
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#0D47A1,#2F2FE4) !important;
+color:#FFFFFF !important;
+border-radius:18px 18px 0 0;
+}
+
+/* Buscador */
+input,
+.buscar{
+background:#FFFFFF !important;
+color:#0D47A1 !important;
+border-radius:14px !important;
+border:2px solid #90CAF9 !important;
+}
+
+/* Lista de firmas tipo tarjeta BI */
+.item,
+.firma-item,
+.lista-item,
+.card-firma,
+#lista div{
+background:
+linear-gradient(145deg,#FFFFFF,#E3F2FD) !important;
+color:#0D47A1 !important;
+border-radius:14px !important;
+border-left:6px solid #2F2FE4 !important;
+box-shadow:0 6px 15px rgba(0,0,0,.15);
+}
+
+.item *,
+.firma-item *,
+.lista-item *,
+.card-firma *,
+#lista div *{
+color:#0D47A1 !important;
+text-shadow:none !important;
+}
+
+/* Estado pendiente */
+.pendiente{
+border-left-color:#DF301C !important;
+}
+
+/* Estado realizado */
+.realizada{
+border-left-color:#2196F3 !important;
+}
+
+/* Botones estilo dashboard */
+button{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+border-radius:14px !important;
+box-shadow:0 8px 20px rgba(47,47,228,.4);
+}
+
+/* Efecto tarjeta */
+.panel:hover,
+.card:hover{
+transform:translateY(-2px);
+transition:.25s ease;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="fecha">
+Fecha: ${new Date().toLocaleString()}
+</div>
+
+<h1>Control de Firmas de Cuaderno GIS</h1>
+
+<div class="resumen">
+<h2>Resumen por Base</h2>
+
+<table>
+<tr>
+<th>Base</th>
+<th>Total</th>
+<th>Realizadas</th>
+<th>Pendientes</th>
+<th>Avance</th>
+</tr>
+
+${resumenBases}
+
+</table>
+
+</div>
+
+<h2>Firmas de Cuaderno Pendientes</h2>
+
+<table>
+<tr>
+<th>Base</th>
+<th>Dirección</th>
+<th>Latitud</th>
+<th>Longitud</th>
+</tr>
+
+${pendientes}
+
+</table>
+
+</body>
+</html>
+`;
+
+let blob=new Blob([contenido],{type:"text/html"});
+
+let enlace=document.createElement("a");
+enlace.href=URL.createObjectURL(blob);
+enlace.download="Reporte_Firmas_Cuaderno_GIS_"+new Date().toISOString().slice(0,10)+".html";
+enlace.click();
+
+}
+
+document.addEventListener("click", function(e){
+
+let onda=document.createElement("div");
+onda.className="destelloClick";
+onda.style.left=(e.clientX-8)+"px";
+onda.style.top=(e.clientY-8)+"px";
+document.body.appendChild(onda);
+
+for(let i=0;i<35;i++){
+
+let p=document.createElement("span");
+p.className="cursorParticula";
+
+p.style.left=e.clientX+"px";
+p.style.top=e.clientY+"px";
+
+let x=(Math.random()-0.5)*160;
+let y=(Math.random()-0.5)*160;
+
+p.style.setProperty("--tx",x+"px");
+p.style.setProperty("--ty",y+"px");
+
+document.body.appendChild(p);
+
+setTimeout(function(){
+p.remove();
+},700);
+
+}
+
+setTimeout(function(){
+onda.remove();
+},500);
+
+});
+
+
+else if(estado==="pendiente"){
+            item.style.display=item.classList.contains("pendiente")?"block":"none";
+        }else if(estado==="realizada"){
+            item.style.display=item.classList.contains("realizada")?"block":"none";
+        }
+    });
+}
+
+
+// Orden de firmas por estado: pendientes primero y realizadas después
+function pendientePrimero(lista){
+    return lista.sort(function(a,b){
+        let pa = (a.estado === "pendiente" || a.realizada === false) ? 0 : 1;
+        let pb = (b.estado === "pendiente" || b.realizada === false) ? 0 : 1;
+        return pa - pb;
+    });
+}
+
+</script>
+
+<script>
+
+const datos=[
+{base:"VITARTE",dir:"Calle Tulipanes - Mz. A1 Lt. 09",lat:-12.037296,lng:-76.928211,imagen:"ubicacion_serenazgo.png",ok:false},
+{base:"VITARTE",dir:"Parque 3 - Mz. X Lt. 21",lat:-12.039082,lng:-76.929570,ok:false},
+{base:"VITARTE",dir:"Mz. B Lt. 13",lat:-12.033648,lng:-76.910723,ok:false},
+{base:"VITARTE",dir:"Calle Tulipanes - Mz. A1 Lt. 09",lat:-12.006469035026567,lng:-76.8456652180645,ok:false},
+{base:"VITARTE",dir:"Parque 3 - Mz. X Lt. 21",lat:-12.036381921158014,lng:-76.93647216024837,ok:false},
+{base:"VITARTE",dir:"Mz. B Lt. 13",lat:-12.023490208358098,lng:-76.92298284870813,ok:false},
+{base:"VITARTE",dir:"Calle 20 de Agosto - Mz. M Lt. 09",lat:-12.031692,lng:-76.94335,ok:false},
+{base:"VITARTE",dir:"Mz. A13 Lt. 11",lat:-12.02454,lng:-76.946847,ok:false},
+{base:"VITARTE",dir:"Mz. B Lt. 14",lat:-12.026052,lng:-76.91154,ok:false},
+{base:"VITARTE",dir:"Mz. K Lt. 01",lat:-12.023783,lng:-76.943414,ok:false},
+{base:"VITARTE",dir:"Mz. J Lt. 32",lat:-12.023562,lng:-76.94204,ok:false},
+{base:"VITARTE",dir:"Mz. G Lt. 35",lat:-12.024319,lng:-76.942222,ok:false},
+{base:"VITARTE",dir:"Mz. E Lt. 06",lat:-12.030687,lng:-76.906173,ok:false},
+{base:"VITARTE",dir:"Mz. A Lt. 02",lat:-12.045948,lng:-76.932349,ok:false},
+{base:"VITARTE",dir:"Mz. D Lt. 26",lat:-12.045948,lng:-76.932349,ok:false},
+{base:"VITARTE",dir:"N 1260",lat:-12.027474419365069,lng:-76.93249665722249,ok:false},
+{base:"VITARTE",dir:"Parque N 5, Calle Rio Santa - Mz. B Lt. 24",lat:-12.033063,lng:-76.934242,ok:false},
+{base:"VITARTE",dir:"Parque N 4, Calle Rio Rimac - Mz. H Lt. 17",lat:-12.033063,lng:-76.934242,ok:false},
+{base:"VITARTE",dir:"Mz. J Lt. 01",lat:-12.046982,lng:-76.901308,ok:false},
+{base:"VITARTE",dir:"Mz. S Lt. 02",lat:-12.029007,lng:-76.91501,ok:false},
+{base:"VITARTE",dir:"Santa Rosita (I Etapa)",lat:-12.024887,lng:-76.933941,ok:false},
+{base:"VITARTE",dir:"Santa Rosita (II Etapa)",lat:-12.024915,lng:-76.931328,ok:false},
+{base:"VITARTE",dir:"Los Robles de Ate III",lat:-12.024696,lng:-76.927758,ok:false},
+{base:"VITARTE",dir:"Alameda La Rivera",lat:-12.024243,lng:-76.944212,ok:false},
+{base:"VITARTE",dir:"Asociacion Inmigrantes de Chinchos",lat:-12.046309081514956,lng:-76.9184443910131,ok:false},
+{base:"VITARTE",dir:"Mz. C Lt. 09",lat:-12.024537,lng:-76.900966,ok:false},
+{base:"VITARTE",dir:"Calle Los Cisnes N 398",lat:-12.036514,lng:-76.938581,ok:false},
+{base:"VITARTE",dir:"Mz. C Lt. 8",lat:-12.046602,lng:-76.925335,ok:false},
+{base:"VITARTE",dir:"Mz. L Lt. 1",lat:-12.044252,lng:-76.924975,ok:false},
+{base:"VITARTE",dir:"Mz. L Lt. 18",lat:-12.044488,lng:-76.924706,ok:false},
+{base:"VITARTE",dir:"Mz. L Lt. 12",lat:-12.039244,lng:-76.919245,ok:false},
+{base:"VITARTE",dir:"Mz. E Lt. 32",lat:-12.046616,lng:-76.918644,ok:false},
+{base:"VITARTE",dir:"Mz. F Lt. 02",lat:-12.04676,lng:-76.918539,ok:false},
+{base:"VITARTE",dir:"Calle Ankara 129",lat:-12.04311,lng:-76.927329,ok:false},
+{base:"VITARTE",dir:"Mz. B Lt. 2",lat:-12.031958,lng:-76.926253,ok:false},
+{base:"VITARTE",dir:"Mz. B Lt. 7",lat:-12.035985,lng:-76.919603,ok:false},
+{base:"VITARTE",dir:"Mz. A Lt. 03",lat:-12.018695,lng:-76.902103,ok:false},
+{base:"VITARTE",dir:"Mz. E Lt. 9",lat:-12.028347,lng:-76.913691,ok:false},
+{base:"VITARTE",dir:"Mz. D Lt. 1A",lat:-12.021763,lng:-76.913549,ok:false},
+{base:"VITARTE",dir:"Calle Las Praderas Lt. 12A",lat:-12.046926,lng:-76.891332,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"B\" LOTE 5",lat:-12.020417,lng:-76.885079,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"E\" LOTE 24",lat:-12.020417,lng:-76.885079,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"E\" LOTE 18",lat:-12.024671,lng:-76.882795,ok:false},
+{base:"SANTA CLARA",dir:"JR. RAMON CASTILLA 141",lat:-12.018955586843973,lng:-76.88249189267998,ok:false},
+{base:"SANTA CLARA",dir:"CASETA DE VIGILANCIA",lat:-12.028892263606888,lng:-76.8847500323606,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"B\" LOTE 5",lat:-12.020769,lng:-76.8852,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"E\" LOTE 24",lat:-12.021735,lng:-76.884368,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"E\" LOTE 18",lat:-12.022516,lng:-76.884245,ok:false},
+{base:"SANTA CLARA",dir:"CASETA DE VIGILANCIA",lat:-12.027259,lng:-76.884792,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"C\" LOTE 8",lat:-12.027259,lng:-76.884792,ok:false},
+{base:"SANTA CLARA",dir:"CASETA DE VIGILANCIA",lat:-12.027259,lng:-76.884792,ok:false},
+{base:"SANTA CLARA",dir:"MZ E - LT. 15",lat:-12.013407,lng:-76.885095,ok:false},
+{base:"SANTA CLARA",dir:"MZ E- LT. 03",lat:-12.012944,lng:-76.885189,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"D\" LOTE 09",lat:-12.012944,lng:-76.885189,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"C\" LOTE 13",lat:-12.022862,lng:-76.892329,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"B\" LOTE 20",lat:-12.020553,lng:-76.88756,ok:false},
+{base:"SANTA CLARA",dir:"AV. ALFONSO UGARTE N 2990",lat:-12.020553,lng:-76.88756,ok:false},
+{base:"SANTA CLARA",dir:"CASETA DE VIGILANCIA",lat:-12.017683,lng:-76.882399,ok:false},
+{base:"SANTA CLARA",dir:"MZ \"B\" LOTE 13",lat:-12.024651,lng:-76.888536,ok:false},
+{base:"SANTA CLARA",dir:"AV. INDEPENDENCIA (CASETA DE VIGILANCIA N 6",lat:-12.014844443170842,lng:-76.88024556304502,ok:false},
+{base:"SANTA CLARA",dir:"CARRETERA CENTRAL 10.5 N 8510",lat:-12.016031088095344,lng:-76.8892627305122,ok:false},
+{base:"SANTA CLARA",dir:"MZ B LT.",lat:-12.033332,lng:-76.877638,ok:false},
+{base:"SANTA CLARA",dir:"MZ F - LT.11",lat:-12.017122,lng:-76.881246,ok:false},
+{base:"SANTA CLARA",dir:"CASETA DE VIGILANCIA",lat:-12.020988,lng:-76.889703,ok:false},
+{base:"SANTA CLARA",dir:"AV. GUADALUPE N 555",lat:-12.020988,lng:-76.889703,ok:false},
+{base:"SANTA CLARA",dir:"AV. 28 DE JULIO",lat:-12.017045264613827,lng:-76.88703813697559,ok:false},
+{base:"SANTA CLARA",dir:"JR. TUPAC AMARU 298",lat:-12.017983540263971,lng:-76.8854764996863,ok:false},
+{base:"SANTA CLARA",dir:"GARITA PEDRO RUIZ GALLO 2991",lat:-12.014003416429508,lng:-76.88589281701873,ok:false},
+{base:"SANTA CLARA",dir:"MZ A LT. 3",lat:-12.012555,lng:-76.884068,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"A\" LOTE 1",lat:-12.03261,lng:-76.882024,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"N\" LOTE 7",lat:-12.03261,lng:-76.882024,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"W\" LOTE 17",lat:-12.046926,lng:-76.884174,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"Q\" LOTE 21",lat:-12.048272,lng:-76.884111,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"A\" LOTE 28",lat:-12.017358,lng:-76.881868,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"M\" LOTE 26",lat:-12.017033,lng:-76.880484,ok:false},
+{base:"SANTA CLARA",dir:"MZ \"J\" LOTE 7",lat:-12.018397,lng:-76.883005,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"A\" LOTE 1",lat:-12.047277,lng:-76.889706,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"D\" LOTE 4",lat:-12.046555,lng:-76.889791,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"J\" LOTE 30",lat:-12.046272,lng:-76.893238,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"C\" LOTE 19-18",lat:-12.049588,lng:-76.889309,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"I\" LOTE 8",lat:-12.049619,lng:-76.889872,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"E\" LOTE 15",lat:-12.049619,lng:-76.889872,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"E\" LOTE 14",lat:-12.049989,lng:-76.889711,ok:false},
+{base:"SANTA CLARA",dir:"CASETA DE VIGILANCIA",lat:-12.049989,lng:-76.889711,ok:false},
+{base:"SANTA CLARA",dir:"MZ \"D\" LOTE 50",lat:-12.019646,lng:-76.884339,ok:false},
+{base:"SANTA CLARA",dir:"MZ \"H\" LOTE 20",lat:-12.019646,lng:-76.884339,ok:false},
+{base:"SANTA CLARA",dir:"MZ \"E\" LOTE 3",lat:-12.021048,lng:-76.884513,ok:false},
+{base:"SANTA CLARA",dir:"MZ \"H\" LOTE 1",lat:-12.021048,lng:-76.884513,ok:false},
+{base:"SANTA CLARA",dir:"MZ \"A6\" LOTE 4",lat:-12.021048,lng:-76.884513,ok:false},
+{base:"SANTA CLARA",dir:"MZ K - LT. 2",lat:-12.021048,lng:-76.884513,ok:false},
+{base:"SANTA CLARA",dir:"MZ C - LT.15",lat:-12.019227685288826,lng:-76.88657622817374,ok:false},
+{base:"SANTA CLARA",dir:"MZ H LT. 11",lat:-12.020687,lng:-76.887517,ok:false},
+{base:"SANTA CLARA",dir:"MZ A LT. 14",lat:-12.020687,lng:-76.887517,ok:false},
+{base:"SANTA CLARA",dir:"MZ K LT. 6",lat:-12.020687,lng:-76.887517,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"H1\" LOTE 7",lat:-12.020687,lng:-76.887517,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"V2\" LOTE 14",lat:-12.020687,lng:-76.887517,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"L\" LOTE 19",lat:-12.020687,lng:-76.887517,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"B\" LOTE 32",lat:-12.020687,lng:-76.887517,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"G\" LOTE 46",lat:-12.020687,lng:-76.887517,ok:false},
+{base:"SANTA CLARA",dir:"CASETA DE VIGILANCIA",lat:-12.018401010678144,lng:-76.87511683555023,ok:false},
+{base:"SANTA CLARA",dir:"AV. MARIANO MELGAR 479",lat:-12.01889840174185,lng:-76.88155734003196,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"K\" LOTE 3",lat:-12.020687,lng:-76.887517,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"G\" LOTE 2",lat:-12.020687,lng:-76.887517,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"U\" LOTE 19",lat:-12.020687,lng:-76.887517,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"T\" LOTE 6",lat:-12.020687,lng:-76.887517,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"C\" LOTE 14",lat:-12.020687,lng:-76.887517,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"D\" LOTE 2",lat:-12.022516,lng:-76.878945,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"K\" LOTE 9",lat:-12.022516,lng:-76.878945,ok:false},
+{base:"SANTA CLARA",dir:"5TA. ZONA",lat:-12.022516,lng:-76.878945,ok:false},
+{base:"SANTA CLARA",dir:"MZ F - LT. 21",lat:-12.022516,lng:-76.878945,ok:false},
+{base:"SANTA CLARA",dir:"MZ D - LT. 1",lat:-12.031996,lng:-76.893332,ok:false},
+{base:"SANTA CLARA",dir:"MZ G LOTE 6",lat:-12.030144,lng:-76.890473,ok:false},
+{base:"SANTA CLARA",dir:"CASETA DE VIGILANCIA",lat:-12.030144,lng:-76.890473,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"A\" LOTE 10",lat:-12.020595,lng:-76.885162,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"F\" LOTE 28",lat:-12.020595,lng:-76.885162,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"A\" LOTE 7",lat:-12.013885,lng:-76.873097,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"X\" LOTE 19-20",lat:-12.013885,lng:-76.873097,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"C\" LOTE 1",lat:-12.013885,lng:-76.873097,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"A\" LOTE 6",lat:-12.013885,lng:-76.873097,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"A\" LOTE 7",lat:-12.013885,lng:-76.873097,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"B\" LOTE 1",lat:-12.012883,lng:-76.869332,ok:false},
+{base:"SANTA CLARA",dir:"MZ A- LT. 22",lat:-12.009818,lng:-76.86438,ok:false},
+{base:"SANTA CLARA",dir:"MZ C- LT. 23",lat:-12.011977,lng:-76.873232,ok:false},
+{base:"SANTA CLARA",dir:"MZ B LOTE 10",lat:-12.011198,lng:-76.878021,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"B\" LOTE 28",lat:-12.013086,lng:-76.850733,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"B\" LOTE 2",lat:-12.011118,lng:-76.859521,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"B\" LOTE 1",lat:-12.011062,lng:-76.859576,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"O\" LOTE 12",lat:-12.010772,lng:-76.8521,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"B\" LOTE 6",lat:12.012624,lng:-76.881144,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"C\" LOTE 26",lat:-12.012691,lng:-76.849878,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"C\" LOTE 7",lat:-12.012691,lng:-76.849878,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"A\" LOTE 26",lat:-12.009997,lng:-76.860743,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"C\" LOTE 01",lat:-12.009997,lng:-76.860743,ok:false},
+{base:"SANTA CLARA",dir:"MERCADO",lat:-12.004435,lng:-76.836019,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"A\" LOTE 22",lat:-12.009881,lng:-76.864374,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"A\" LOTE 2",lat:-12.016216,lng:-76.871074,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"C\" LOTE 1",lat:-12.010952,lng:-76.880237,ok:false},
+{base:"SANTA CLARA",dir:"MZ. \"C\" LOTE 4",lat:-12.020543,lng:-76.888021,ok:false},
+{base:"HUAYCAN",dir:"MZ. E LT. 02 GRUPO \"C\" HORACIO ZEBALLOS",lat:-12.015322,lng:-76.837832,ok:false},
+{base:"HUAYCAN",dir:"MZ. H LT. 02 GRUPO \"D\" HORACIO ZEBALLOS",lat:-12.015842,lng:-76.840260,ok:false},
+{base:"HUAYCAN",dir:"MZ. E LT 03 AA.HH. SR DE LOS MILAGROS",lat:-12.026566,lng:-76.821406,ok:false},
+{base:"HUAYCAN",dir:"MZ. G LT. 01 GRUPO \"G\" HORACIO ZEBALLOS",lat:-12.019911,lng:-76.839103,ok:false},
+{base:"HUAYCAN",dir:"MZ. B1 LT. 13 GRUPO \"I\" HORACIO ZEBALLOS",lat:-12.024064,lng:-76.838239,ok:false},
+{base:"HUAYCAN",dir:"MZ. A LT. 12 GRUPO \"I\" HORACIO ZEBALLOS",lat:-12.022680,lng:-76.837950,ok:false},
+{base:"HUAYCAN",dir:"I.E AKIRA KATO GRUPO \"K\" HORACIO ZEBALLOS",lat:-12.023074,lng:-76.837168,ok:false},
+{base:"HUAYCAN",dir:"MZ. D LT. 12 ASOC. LOS JARDINES GRUPO \"L\"",lat:-12.006050,lng:-76.833591,ok:false},
+{base:"HUAYCAN",dir:"MZ. R LT. 16 ASOC. VIV. 24 DE SETIEMBRE GRUPO \"M\"",lat:-12.026640,lng:-76.833827,ok:false},
+{base:"HUAYCAN",dir:"MZ. U LT. 7 ASOC. VIV. 24 DE SETIEMBRE GRUPO \"M\"",lat:-12.026986,lng:-76.833932,ok:false},
+{base:"HUAYCAN",dir:"MZ. B LT. 04 AA.HH. LAS LOMAS",lat:-12.006353,lng:-76.823487,ok:false},
+{base:"HUAYCAN",dir:"MZ. B LT. 06 AA.HH. FUNDO RODOLFO PARIACHI",lat:-12.010388,lng:-76.845469,ok:false},
+{base:"HUAYCAN",dir:"MZ. K LT. 01 AA.HH. SAN FRANCISCO DE PARIACHI",lat:-12.012313,lng:-76.843321,ok:false},
+{base:"HUAYCAN",dir:"MZ. F LT. 02 ASOCIACION DE PROPIETARIOS MIRADOR DEL CIELO",lat:-12.012313,lng:-76.843321,ok:false},
+{base:"HUAYCAN",dir:"MZ. C LT. 12 URB. VILLA HERMOSA",lat:-12.007542,lng:-76.831791,ok:false},
+{base:"HUAYCAN",dir:"MZ. L1 LT. 29 PARQUE N 4 ASOC. CIVIL DE PARIACHI, III ETAPA",lat:-12.006681,lng:-76.845016,ok:false},
+{base:"HUAYCAN",dir:"MZ. P2 LT. 9 RESIDENCIAL LAS PALMERAS DE PARIACHI, SECTOR 4",lat:-11.997530,lng:-76.834062,ok:false},
+{base:"HUAYCAN",dir:"MZ. A LT. 11 NUEVO AMANECER",lat:-12.005880,lng:-76.845991,ok:false},
+{base:"HUAYCAN",dir:"MZ. Q1 LT. 5 II ETAPA RESIDENCIAL DE PARIACHI",lat:-12.000925,lng:-76.834330,ok:false},
+{base:"HUAYCAN",dir:"MZ. E1 LT. 19 ASOC. CIVIL DE PARIACHI III ETAPA",lat:-12.007293,lng:-76.844012,ok:false},
+{base:"HUAYCAN",dir:"MZ. F LT. 27 IV ETAPA FILADELFIA",lat:-12.007293,lng:-76.844012,ok:false},
+{base:"HUAYCAN",dir:"MZ. O LT. 7 ASOC. PARIACHI I ETAPA",lat:-12.001132,lng:-76.832276,ok:false},
+{base:"HUAYCAN",dir:"MZ. D LT. 16 PARQUE VIENA ASOC. PRADERAS DE PARIACHI II ETAPA",lat:-12.001132,lng:-76.832276,ok:false},
+{base:"HUAYCAN",dir:"MZ \"B\" LT. 10 ASOC. PROP. LAS PONCIANAS DE PARIACHI",lat:-12.001132,lng:-76.832276,ok:false},
+{base:"HUAYCAN",dir:"CALLE PORTADA DEL SOL MZ \"C\" LT 20 COOP. VIV. JAVIER LUNA PIZARRO URB. EL DESCANSO (CASETA VIGILANCIA)",lat:-12.001132,lng:-76.832276,ok:false},
+{base:"HUAYCAN",dir:"MZ. J1 LT. 5 RESIDENCIAL PARIACHI, III ETAPA",lat:-12.001132,lng:-76.832276,ok:false},
+{base:"HUAYCAN",dir:"MZ \"G\" 41 IV ETAPA DE FILADELFIA",lat:-11.997307,lng:-76.834054,ok:false},
+{base:"HUAYCAN",dir:"MZ. A LT. 6 ASOC. EL SERVIDOR DE ATE",lat:-12.030560,lng:-76.835606,ok:false},
+{base:"HUAYCAN",dir:"ASOC. DE PROPIETARIOS PARQUE INDUSTRIAL LAS MADERAS DE PARIACHI LT. 27-28",lat:-12.004732,lng:-76.822972,ok:false},
+{base:"HUAYCAN",dir:"MZ. H LT. 1 ASOC. PROP. GIRASOLES DE ATE, C.C. KM 17.5 COSTADO DEL CLUB VILLA TUSAN",lat:-11.996630,lng:-76.832335,ok:false},
+{base:"HUAYCAN",dir:"MZ. B LT. 19 ASOC. PROP. GIRASOLES DE ATE, C.C. KM 17.5 COSTADO DEL CLUB VILLA TUSAN",lat:-11.996352,lng:-76.831979,ok:false},
+{base:"HUAYCAN",dir:"MZ. F1 LT. 15 SUB ESTACION G III ETAPA DE PARIACHI, ATE",lat:-12.007289,lng:-76.844375,ok:false},
+{base:"HUAYCAN",dir:"AV. NN6 MZ. V1 LT. 05 SUB ESTACION \"H\" PARQUE N 3 ASOC. CIVIL PARIACHI III ETAPA",lat:-12.006321,lng:-76.845099,ok:false},
+{base:"HUAYCAN",dir:"MZ. D LT. 62 I ETAPA, PARIACHI, ATE.",lat:-12.004344,lng:-76.834723,ok:false},
+{base:"HUAYCAN",dir:"AV. EL POZO MZ. \"L\" LT. 1 ASOC. FILADELFIA IV ETAPA REF. COSTADO CLUB VILLA TUSAN",lat:-11.997156,lng:-76.833825,ok:false},
+{base:"HUAYCAN",dir:"MZ \"F\" LT 16 URB. EL LUCUMO PARQUE N 3 REF VENTA DE POLLO BROSTHER",lat:-12.008386,lng:-76.829776,ok:false},
+{base:"HUAYCAN",dir:"MZ. G LT. 28 URB. EL LUCUMO PARQUE N 3 REF. BODEGA",lat:-12.008861,lng:-76.830769,ok:false},
+{base:"HUAYCAN",dir:"MZ. C LT. 29 URB. EL DESCANSO",lat:-12.004188,lng:-76.833318,ok:false},
+{base:"HUAYCAN",dir:"MZ. N1 LT. 01 III ETAPA \"PARIACHI\" NN-6",lat:-12.007936,lng:-76.845901,ok:false},
+{base:"HUAYCAN",dir:"UCV 3 LT. 19 ZONA A",lat:-12.009280,lng:-76.826876,ok:false},
+{base:"HUAYCAN",dir:"UCV 10 LT. 46 ZONA A",lat:-12.010305,lng:-76.826029,ok:false},
+{base:"HUAYCAN",dir:"UCV 5 LT. 44 ZONA A",lat:-12.010611,lng:-76.827749,ok:false},
+{base:"HUAYCAN",dir:"UCV 30 LT. 25 ZONA B",lat:-12.011950,lng:-76.822286,ok:false},
+{base:"HUAYCAN",dir:"UCV 35 LT. 35 ZONA B",lat:-12.014134,lng:-76.822194,ok:false},
+{base:"HUAYCAN",dir:"UCV 40 LT. 10 ZONA B",lat:-12.013377,lng:-76.820556,ok:false},
+{base:"HUAYCAN",dir:"UCV 40 LT. 41 ZONA B",lat:-12.013377,lng:-76.820556,ok:false},
+{base:"HUAYCAN",dir:"UCV 28 LT. 10 ZONA B",lat:-12.013377,lng:-76.820556,ok:false},
+{base:"HUAYCAN",dir:"ASOCIACION DE PEQUENAS EMPRESAS PARQUE INDUSTRIAL DE HUAYCAN MZ. B LT. 1 ZONA \"C\" ATE",lat:-12.013377,lng:-76.820556,ok:false},
+{base:"HUAYCAN",dir:"UCV 47-B LT. 150 ZONA C- HUAYCAN",lat:-12.015387,lng:-76.839083,ok:false},
+{base:"HUAYCAN",dir:"I.E N 53 FE Y ALEGRIA UCV 56 ZONA C- HUAYCAN",lat:-12.015934,lng:-76.838742,ok:false},
+{base:"HUAYCAN",dir:"UCV 43 LT. 36 ZONA \"C\" HUAYCAN",lat:-12.015348,lng:-76.837094,ok:false},
+{base:"HUAYCAN",dir:"INSTITUTO DE EDUCACION SUPERIOR TECNOLOGICO DE HUAYCAN",lat:-12.016394,lng:-76.840342,ok:false},
+{base:"HUAYCAN",dir:"UCV 71 LT. 147 ZONA D",lat:-12.016394,lng:-76.840342,ok:false},
+{base:"HUAYCAN",dir:"PODER JUDICIAL - AV. JOSE C. MARIATEGUI S/N MZ. C LT. 3 PLAZA DE ARMAS DE HUAYCAN, ATE",lat:-12.016394,lng:-76.840342,ok:false},
+{base:"HUAYCAN",dir:"I.E N 1257 REINO UNIDO GRAN BRETANA CALLE 7 S/N ZONA \"D\" - HUAYCAN",lat:-12.009649,lng:-76.829133,ok:false},
+{base:"HUAYCAN",dir:"UCV 80 LT. 52 ZONA E",lat:-12.017407,lng:-76.824067,ok:false},
+{base:"HUAYCAN",dir:"UCV 85 LT. 14 ZONA \"E\"",lat:-12.017558,lng:-76.823886,ok:false},
+{base:"HUAYCAN",dir:"UCV 94 LT. 44 ZONA F",lat:-12.017446,lng:-76.820750,ok:false},
+{base:"HUAYCAN",dir:"UCV 98 LT. 39 ZONA F",lat:-12.017408,lng:-76.820683,ok:false},
+{base:"HUAYCAN",dir:"UCV 102 LT. 51 ZONA F",lat:-12.016274,lng:-76.819577,ok:false},
+{base:"HUAYCAN",dir:"UCV 100 LT. 44 ZONA F",lat:-12.016873,lng:-76.818683,ok:false},
+{base:"HUAYCAN",dir:"UCV 111 LT. 5 ZONA G",lat:-12.021651,lng:-76.822318,ok:false},
+{base:"HUAYCAN",dir:"I.E N 1248 - 5 ABRIL AV. 15 DE JULIO S/N ZONZ\"G\" HUAYCAN",lat:-12.021651,lng:-76.822318,ok:false},
+{base:"HUAYCAN",dir:"UCV 113 LT. 59 ZONA G",lat:-12.021194,lng:-76.822245,ok:false},
+{base:"HUAYCAN",dir:"UVC 9 LT. 26 PARQUE LAS PIEDRITAS ZONA H",lat:-12.021128,lng:-76.839319,ok:false},
+{base:"HUAYCAN",dir:"UCV 123 LT. 2 ZONA H",lat:-12.020673,lng:-76.838854,ok:false},
+{base:"HUAYCAN",dir:"PUESTO DE SALUD SISOL UCV 124 CALLE 11",lat:-12.018167,lng:-76.814295,ok:false},
+{base:"HUAYCAN",dir:"UCV 152 LT 04 CALLE 06 ZONA J",lat:-12.025228,lng:-76.821223,ok:false},
+{base:"HUAYCAN",dir:"UCV 153 LT. 30 ZONA J",lat:-12.030706,lng:-76.825467,ok:false},
+{base:"HUAYCAN",dir:"UCV 144 LT 51 ZONA J",lat:-12.028555,lng:-76.822382,ok:false},
+{base:"HUAYCAN",dir:"UCV 160 LT. 2 ZONA K",lat:-12.026565,lng:-76.821291,ok:false},
+{base:"HUAYCAN",dir:"UCV 165-B LT. 39 ZONA K CASA NATURISTA PERUANO ITALIANA ANNA MARGOTTINI",lat:-12.030701,lng:-76.820070,ok:false},
+{base:"HUAYCAN",dir:"UCV 170 LT. 42 ZONA \"L\"",lat:-12.020071,lng:-76.815763,ok:false},
+{base:"HUAYCAN",dir:"UCV 171-B LT. 57 ZONA \"M\"",lat:-12.021849,lng:-76.814357,ok:false},
+{base:"HUAYCAN",dir:"I.E N 1270 JUAN EL BAUTISTA CALLE ALTO PERU UCV 171-B LT. 80 ZONZ \"M\"",lat:-12.021519,lng:-76.815881,ok:false},
+{base:"HUAYCAN",dir:"UCV 177-A LT. 5 ZONA \"N\"",lat:-12.009425,lng:-76.816339,ok:false},
+{base:"HUAYCAN",dir:"UCV 177-D LT. 5 ZONA \"N\" AMPLIACION",lat:-12.009084,lng:-76.814590,ok:false},
+{base:"HUAYCAN",dir:"UCV 179 CENTRO DE DESARROLLO EMPRESARIAL, ZONA \"O\"",lat:-12.012484,lng:-76.817967,ok:false},
+{base:"HUAYCAN",dir:"I.E MANUEL GONZALES PRADA AV. ANDRES A. CACERES ZONA \"O\" HUAYCAN",lat:-12.015837,lng:-76.818439,ok:false},
+{base:"HUAYCAN",dir:"MZ. D LT. 1 ASOC. POBLADORES AA.HH. SENOR DE MURUHUAY AMPLIACION ZONA P",lat:-12.016129,lng:-76.818083,ok:false},
+{base:"HUAYCAN",dir:"UCV 196 LT. 63 ZONA Q",lat:-12.012166,lng:-76.813568,ok:false},
+{base:"HUAYCAN",dir:"UCV 203-B LT. 46 ZONA R",lat:-12.032566,lng:-76.821540,ok:false},
+{base:"HUAYCAN",dir:"UCV 205C LT. 249 ZONA R, HUAYCAN, ATE 1RA. AMPLIACION 12 DE AGOSTO",lat:-12.034622,lng:-76.823257,ok:false},
+{base:"HUAYCAN",dir:"UCV 205C LT. 256 ZONA R, HUAYCAN, ATE 2DA. AMPLIACION 12 DE AGOSTO",lat:-12.034795,lng:-76.823849,ok:false},
+{base:"HUAYCAN",dir:"UCV 210 LT. 37 ZONA S",lat:-12.023334,lng:-76.808443,ok:false},
+{base:"HUAYCAN",dir:"UCV 217-E LT. 8 ZONA S (COMEDOR 16 DE ABRIL CLUB DE MADRES)",lat:-12.020531,lng:-76.810267,ok:false},
+{base:"HUAYCAN",dir:"ASOCIACION PROD. Y COM. AGRO. EL RENANCER DE JULIO LT. 4 ZONA \"S\" HUAYCAN",lat:-12.025680,lng:-76.807609,ok:false},
+{base:"HUAYCAN",dir:"UCV 231-C MZ. B LT. 1 AMPLIACION CERRITOS DE LA PAZ",lat:-12.011070,lng:-76.821497,ok:false},
+{base:"HUAYCAN",dir:"UCV 232 LT. 24 ZONA Z",lat:-12.012043,lng:-76.807582,ok:false},
+{base:"HUAYCAN",dir:"UCV 234 LT. 51 ZONA Z",lat:-12.012043,lng:-76.807582,ok:false},
+{base:"HUAYCAN",dir:"UCV 233-B LT. 267 LOS ALAMOS, ZONA Z",lat:-12.012043,lng:-76.807582,ok:false},
+{base:"MAYORAZGO",dir:"Caseta de vigilancia - Calle Paris",lat:-12.047,lng:-76.935861,ok:false},
+{base:"MAYORAZGO",dir:"Alpamayo - Puerta N 1",lat:-12.064306,lng:-76.937806,ok:false},
+{base:"MAYORAZGO",dir:"Cooperativa 27 de Abril - Calle Huaran 183",lat:-12.057623984893022,lng:-76.95817383249079,ok:false},
+{base:"MAYORAZGO",dir:"Calle Sacsayhuaman - MF-2 Lt. 21",lat:-12.057309913855,lng:-76.958056933407,ok:false},
+{base:"MAYORAZGO",dir:"Pasaje San Francisco - Mz. A Lt. 29",lat:-12.068498,lng:-76.975499,ok:false},
+{base:"MAYORAZGO",dir:"Caseta de vigilancia - Parque N 2",lat:-12.05591745836331,lng:-76.940035976668,ok:false},
+{base:"MAYORAZGO",dir:"Asociacion Los Claveles - Los Clavelitos - Mz. B1 Lt. 12",lat:-12.016336,lng:-76.870726,ok:false},
+{base:"MAYORAZGO",dir:"Los Claveles - Calle 4 - Mz. G Lt. 14",lat:-12.051434,lng:-76.950919,ok:false},
+{base:"MAYORAZGO",dir:"Caseta de vigilancia - Calle Santander con Av. Huarochiri",lat:-12.054340996509877,lng:-76.94557644598453,ok:false},
+{base:"MAYORAZGO",dir:"Caseta de vigilancia - Calle Linares con Av. Huarochiri",lat:-12.052261210693464,lng:-76.94741778831363,ok:false},
+{base:"MAYORAZGO",dir:"Caseta de vigilancia - Calle 04 Santa Raquel con Av. Huarochiri",lat:-12.05332417,lng:-76.94845753,ok:false},
+{base:"MAYORAZGO",dir:"Caseta de vigilancia - Calle 05 La Merced con Av. Ate",lat:-12.055743055493783,lng:-76.95473225630487,ok:false},
+{base:"MAYORAZGO",dir:"Caseta de vigilancia - Calle Murcia - Parque Fronton",lat:-12.061900807724246,lng:-76.9432213440656,ok:false},
+{base:"MAYORAZGO",dir:"Caseta de vigilancia - Calle Toledo con Huarochiri",lat:-12.051826418065513,lng:-76.94773987666812,ok:false},
+{base:"MAYORAZGO",dir:"Caseta de vigilancia - Calle Madrid con Calle Barcelona",lat:-12.061700416592135,lng:-76.94079607666791,ok:false},
+{base:"MAYORAZGO",dir:"Caseta de vigilancia - Calle Burgos con Calle Bilbao",lat:-12.059977915515312,lng:-76.93945640365533,ok:false},
+{base:"MAYORAZGO",dir:"Caseta de vigilancia - Calle Lerida con Oviedo",lat:-12.056039259910794,lng:-76.93917452879474,ok:false},
+{base:"MAYORAZGO",dir:"Vivienda - Calle San Sebastian N 162",lat:-12.05609425427428,lng:-76.93875735424098,ok:false},
+{base:"MAYORAZGO",dir:"Caseta de vigilancia - Calle Guadalajara Cdra. 3",lat:-12.05808099323152,lng:-76.96369844413637,ok:false},
+{base:"MAYORAZGO",dir:"Caseta de vigilancia - Calle Fuente de Maestre - Mz. H Lt. 12",lat:-12.051809763921504,lng:-76.93946244598465,ok:false},
+{base:"MAYORAZGO",dir:"Caseta de vigilancia - Calle Ibiza con Calle Navarra",lat:-12.05014022307863,lng:-76.93830081714931,ok:false},
+{base:"MAYORAZGO",dir:"Caseta de vigilancia - Calle Cordova",lat:-12.056873968471818,lng:-76.94191527666815,ok:false},
+{base:"MAYORAZGO",dir:"Vivienda - Calle Amsterdam - Mz. O Lt. 17",lat:-12.043418419802181,lng:-76.9341665036556,ok:false},
+{base:"MAYORAZGO",dir:"Vivienda - Calle Siena N 140",lat:-12.043612434585885,lng:-76.93502567482015,ok:false},
+{base:"MAYORAZGO",dir:"Caseta de vigilancia - Calle Bruselas con Calle Berna",lat:-12.043649163920003,lng:-76.93644214598476,ok:false},
+{base:"MAYORAZGO",dir:"Caseta de vigilancia - Calle Paris",lat:-12.046999999999999,lng:-76.93586111111111,ok:false},
+{base:"MAYORAZGO",dir:"Alpamayo - Puerta N 1",lat:-12.064305555555556,lng:-76.93780555555556,ok:false},
+{base:"SALAMANCA",dir:"Condominio Amaral",lat:-12.079222,lng:-76.980806,ok:true},
+{base:"SALAMANCA",dir:"Calle Los Abetos Cuadra 4",lat:-12.079917,lng:-76.979861,ok:false},
+{base:"SALAMANCA",dir:"Av. Marginal con Calle Venecia",lat:-12.082194,lng:-76.980194,ok:true},
+{base:"SALAMANCA",dir:"Parque Trebol",lat:-12.082833,lng:-76.983389,ok:false},
+{base:"SALAMANCA",dir:"Av. Marginal Mz B Lt16",lat:-12.082750,lng:-76.980417,ok:true},
+{base:"SALAMANCA",dir:"Calle Fucsia N 105",lat:-12.081444,lng:-76.984583,ok:true},
+{base:"SALAMANCA",dir:"Av. Tepsicore N 186",lat:-12.073389,lng:-76.982028,ok:false},
+{base:"SALAMANCA",dir:"Calle Atenea N 110",lat:-12.073361,lng:-76.980694,ok:true},
+{base:"SALAMANCA",dir:"Condominio Amaral",lat:-12.079222222222222,lng:-76.98080555555556,ok:false},
+{base:"SALAMANCA",dir:"Calle Los Abetos Cuadra 4",lat:-12.079916666666667,lng:-76.97986111111111,ok:false},
+{base:"SALAMANCA",dir:"Av. Marginal con Calle Venecia",lat:-12.082194444444445,lng:-76.98019444444444,ok:false},
+{base:"SALAMANCA",dir:"Parque Trebol",lat:-12.082833333333333,lng:-76.98338888888889,ok:false},
+{base:"SALAMANCA",dir:"Av. Marginal - Mz. B Lt. 16",lat:-12.08275,lng:-76.98041666666667,ok:false},
+{base:"SALAMANCA",dir:"Calle Fucsia N 105",lat:-12.081444444444445,lng:-76.98458333333333,ok:false},
+{base:"SALAMANCA",dir:"Av. Tepsicore N 186",lat:-12.07338888888889,lng:-76.98202777777778,ok:false},
+{base:"SALAMANCA",dir:"Calle Atenea N 110",lat:-12.073361111111111,lng:-76.98069444444444,ok:false},
+{base:"VALDIVIESO",dir:"Centro Materno Infantil San Fernando",lat:-12.059623674561461,lng:-76.99651610591965,ok:false},
+{base:"SALAMANCA",dir:"Caseta de vigilancia - El Cortijo Cuadra 2",lat:-12.07772884,lng:-76.97908599,ok:false},
+{base:"SALAMANCA",dir:"Av. Separadora Industrial N 1352",lat:-12.07078727259489,lng:-76.97358910550314,ok:false},
+{base:"VALDIVIESO",dir:"Parque Cahuide",lat:-12.057566208504284,lng:-76.99338816120998,ok:false},
+{base:"VALDIVIESO",dir:"Calle Bonemaison N 130",lat:-12.059891147300153,lng:-76.99496277297176,ok:false},
+{base:"VALDIVIESO",dir:"Calle Grau N 177",lat:-12.060176319285272,lng:-76.9943888343388,ok:false},
+{base:"SALAMANCA",dir:"Caseta de vigilancia Urbanizacion Los Alamos",lat:-12.0372967296577,lng:-76.92692583064294,ok:false},
+{base:"SALAMANCA",dir:"Calle Hefestos N 374-376",lat:-12.073951375346175,lng:-76.97778195546758,ok:false},
+{base:"SALAMANCA",dir:"Calle Madre Selva",lat:-12.08096520772635,lng:-76.98292150457085,ok:false},
+{base:"SALAMANCA",dir:"Calle Las Hiedras",lat:-12.079320645055617,lng:-76.98414726132587,ok:false},
+{base:"SALAMANCA",dir:"Urbanizacion El Bosque - Mz. D Lt. 10",lat:-12.061780,lng:-76.984597,ok:false},
+{base:"SALAMANCA",dir:"Calle Las Orquideas N 100",lat:-12.061679972791884,lng:-76.93415750365521,ok:false},
+{base:"SALAMANCA",dir:"Urbanizacion Miguel Grau",lat:-12.076536048393557,lng:-76.98382745947784,ok:false},
+{base:"SALAMANCA",dir:"Parque Ica",lat:-12.078499287923815,lng:-76.9871536343386,ok:false},
+{base:"SALAMANCA",dir:"Parque Trujillo",lat:-12.079554010304582,lng:-76.98364798646529,ok:false},
+{base:"SALAMANCA",dir:"Parque Yucay",lat:-12.076536048393557,lng:-76.98382745947784,ok:false},
+{base:"SALAMANCA",dir:"Asociacion Virgen del Carmen - Mz. B Lt. 15",lat:-12.061780,lng:-76.984597,ok:false},
+{base:"SALAMANCA",dir:"AA.HH. Jose Carlos Mariategui - Mz. A Lt. 6",lat:-12.025659,lng:-76.904962,ok:false},
+{base:"SALAMANCA",dir:"Parque Lima",lat:-12.024273660155666,lng:-76.94961249872246,ok:false},
+{base:"SALAMANCA",dir:"Asociacion Virgen del Carmen - Av. Marginal - Mz. C Lt. 01",lat:-12.076939,lng:-76.985670,ok:false},
+{base:"SALAMANCA",dir:"Calle Los Girasoles",lat:-12.07461534166697,lng:-76.97540704859489,ok:false},
+{base:"SALAMANCA",dir:"Parque Juno",lat:-12.07006517197342,lng:-76.97403395947795,ok:false},
+{base:"SALAMANCA",dir:"Parque Apolo",lat:-12.07268543192245,lng:-76.98083843249059,ok:false},
+{base:"SALAMANCA",dir:"Hotel Asturias",lat:-12.071935384000101,lng:-76.98004132513219,ok:false},
+{base:"SALAMANCA",dir:"Parque Piura",lat:-12.077911383415902,lng:-76.98588565947784,ok:false},
+{base:"SALAMANCA",dir:"Pasaje Las Guindas",lat:-12.068768345932916,lng:-76.98249541899682,ok:false},
+{base:"SALAMANCA",dir:"Av. Paracas Cdra. 4",lat:-12.075587663026527,lng:-76.98734490576942,ok:false},
+{base:"SALAMANCA",dir:"Av. Santa Rosa N 593",lat:-12.015695262710627,lng:-76.87477404598528,ok:false},
+{base:"SALAMANCA",dir:"Av. Marginal - Mz. A Lt. 16",lat:-12.082487132606838,lng:-76.98257706588667,ok:false},
+];
+
+let map=L.map("map").setView([-12.035,-76.91],12);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+let actual=datos;
+let capas=[];
+// ==========================================
+// ZONA SALAMANCA
+// ==========================================
+
+let zonaSalamanca = L.polygon([
+
+    [-12.0634474, -76.9982277],
+    [-12.0638893, -76.9982973],
+    [-12.0639523, -76.9968811],
+    [-12.0643300, -76.9941345],
+    [-12.0647497, -76.9914523],
+    [-12.0645818, -76.9875041],
+    [-12.0695716, -76.9889032],
+    [-12.0716279, -76.9890748],
+    [-12.0733695, -76.9885169],
+    [-12.0735374, -76.9892679],
+    [-12.0736423, -76.9908773],
+    [-12.0742088, -76.9912206],
+    [-12.0762022, -76.9905125],
+    [-12.0799371, -76.9875513],
+    [-12.0829376, -76.9852124],
+    [-12.0843014, -76.9839679],
+    [-12.0852666, -76.9833027],
+    [-12.0849488, -76.9816612],
+    [-12.0769754, -76.9752239],
+    [-12.0638409, -76.9709898],
+    [-12.0622671, -76.9714405],
+    [-12.0594762, -76.9733073],
+    [-12.0598434, -76.9725455],
+    [-12.0587732, -76.9730176],
+    [-12.0564859, -76.9741549],
+    [-12.0564020, -76.9746162],
+    [-12.0569896, -76.9748093],
+    [-12.0588047, -76.9748308],
+    [-12.0590565, -76.9755174],
+    [-12.0592873, -76.9760646],
+    [-12.0596546, -76.9765045],
+    [-12.0590355, -76.9767298],
+    [-12.0593503, -76.9777597],
+    [-12.0599693, -76.9790043],
+    [-12.0604310, -76.9808175],
+    [-12.0610710, -76.9811071],
+    [-12.0620048, -76.9808496],
+    [-12.0626133, -76.9815685],
+    [-12.0625609, -76.9820084],
+    [-12.0617844, -76.9812466],
+    [-12.0609346, -76.9817938],
+    [-12.0609451, -76.9826628],
+    [-12.0610395, -76.9834031],
+    [-12.0615641, -76.9843043],
+    [-12.0613543, -76.9854416],
+    [-12.0620048, -76.9872226],
+    [-12.0616376, -76.9881774],
+    [-12.0609031, -76.9889928],
+    [-12.0603261, -76.9888534],
+    [-12.0596965, -76.9884778],
+    [-12.0582276, -76.9901086],
+    [-12.0575142, -76.9911386],
+    [-12.0564545, -76.9923939],
+    [-12.0566643, -76.9938101],
+    [-12.0581437, -76.9943787],
+    [-12.0591929, -76.9954838],
+    [-12.0617267, -76.9972514],
+    [-12.0617267, -76.9979487],
+    [-12.0634474, -76.9982277]
+], {
+
+    color: "#008000",
+
+    weight: 4,
+
+    opacity: 1,
+
+    fillColor: "#008000",
+
+    fillOpacity: 0.15
+
+}).addTo(map);
+
+let zonaMayorazgo = L.polygon([
+
+    [-12.0564859, -76.9741549],
+    [-12.0594762, -76.9733073],
+    [-12.0638409, -76.9709898],
+    [-12.0691032, -76.9726407],
+    [-12.0636122, -76.9615588],
+    [-12.0624581, -76.9579325],
+    [-12.0620174, -76.9543705],
+    [-12.0609682, -76.9513879],
+    [-12.0572750, -76.9442640],
+    [-12.0578835, -76.9438777],
+    [-12.0607164, -76.9420538],
+    [-12.0618915, -76.9413886],
+    [-12.0642977, -76.9399229],
+    [-12.0648853, -76.9389788],
+    [-12.0648014, -76.9370476],
+    [-12.0637522, -76.9345585],
+    [-12.0616958, -76.9335714],
+    [-12.0601429, -76.9334427],
+    [-12.0585062, -76.9337002],
+    [-12.0564497, -76.9347731],
+    [-12.0548549, -76.9349018],
+    [-12.0518164, -76.9372651],
+    [-12.0508091, -76.9365355],
+    [-12.0482909, -76.9343898],
+    [-12.0443037, -76.9326303],
+    [-12.0438084, -76.9327612],
+    [-12.0431054, -76.9331046],
+    [-12.0421925, -76.9336625],
+    [-12.0412062, -76.9347353],
+    [-12.0429690, -76.9364519],
+    [-12.0530418, -76.9613428],
+    [-12.0545527, -76.9647761],
+    [-12.0564413, -76.9692393],
+    [-12.0574905, -76.9717284],
+    [-12.0564859, -76.9741549]
+
+], {
+
+    color: "#8b5cf6",
+    weight: 4,
+    opacity: 1,
+    fillColor: "#8b5cf6",
+    fillOpacity: 0.15
+
+}).addTo(map);
+
+let zonaVitarte = L.polygon([
+
+    [-12.0291958, -76.9552467],
+    [-12.0279634, -76.9461031],
+    [-12.0280264, -76.9441504],
+    [-12.0310065, -76.9431204],
+    [-12.0335563, -76.9421119],
+    [-12.0371449, -76.9404382],
+    [-12.0435245, -76.9378418],
+    [-12.0429690, -76.9364519],
+    [-12.0411983, -76.9347487],
+    [-12.0442958, -76.9326437],
+    [-12.0464776, -76.9338748],
+    [-12.0471491, -76.9321582],
+    [-12.0485761, -76.9317290],
+    [-12.0511782, -76.9327590],
+    [-12.0538643, -76.9325873],
+    [-12.0587326, -76.9303558],
+    [-12.0636009, -76.9276950],
+    [-12.0654475, -76.9188544],
+    [-12.0615865, -76.9190261],
+    [-12.0561306, -76.9216869],
+    [-12.0526891, -76.9234893],
+    [-12.0505067, -76.9228027],
+    [-12.0485761, -76.9197986],
+    [-12.0482404, -76.9164512],
+    [-12.0470652, -76.9123313],
+    [-12.0461418, -76.9108722],
+    [-12.0442112, -76.9116447],
+    [-12.0420287, -76.9119880],
+    [-12.0382513, -76.9133613],
+    [-12.0357330, -76.9155070],
+    [-12.0352293, -76.9137046],
+    [-12.0362367, -76.9100139],
+    [-12.0383352, -76.9085548],
+    [-12.0405178, -76.9073531],
+    [-12.0447988, -76.9076964],
+    [-12.0471491, -76.9052074],
+    [-12.0491637, -76.9022033],
+    [-12.0499191, -76.8993709],
+    [-12.0502549, -76.8965385],
+    [-12.0489958, -76.8945644],
+    [-12.0476528, -76.8929336],
+    [-12.0487440, -76.8911311],
+    [-12.0505067, -76.8926761],
+    [-12.0534446, -76.8919036],
+    [-12.0536125, -76.8892429],
+    [-12.0526891, -76.8889854],
+    [-12.0518497, -76.8881271],
+    [-12.0539482, -76.8871829],
+    [-12.0527731, -76.8854663],
+    [-12.0511782, -76.8859813],
+    [-12.0488279, -76.8864963],
+    [-12.0494994, -76.8840072],
+    [-12.0506746, -76.8801448],
+    [-12.0489119, -76.8798015],
+    [-12.0474009, -76.8825481],
+    [-12.0458061, -76.8846938],
+    [-12.0445470, -76.8866679],
+    [-12.0444630, -76.8883845],
+    [-12.0425324, -76.8891570],
+    [-12.0401820, -76.8883845],
+    [-12.0380834, -76.8877837],
+    [-12.0365724, -76.8895003],
+    [-12.0332986, -76.8917319],
+    [-12.0265830, -76.8927619],
+    [-12.0238127, -76.8938133],
+    [-12.0169079, -76.8953797],
+    [-12.0161314, -76.8960235],
+    [-12.0159635, -76.8981478],
+    [-12.0154598, -76.8990490],
+    [-12.0149351, -76.8999717],
+    [-12.0132561, -76.8940494],
+    [-12.0134869, -76.8967530],
+    [-12.0144734, -76.9000575],
+    [-12.0159845, -76.9025252],
+    [-12.0176215, -76.9061515],
+    [-12.0188807, -76.9094345],
+    [-12.0201190, -76.9111082],
+    [-12.0226794, -76.9147024],
+    [-12.0231726, -76.9152496],
+    [-12.0236028, -76.9175348],
+    [-12.0236553, -76.9208822],
+    [-12.0234559, -76.9234035],
+    [-12.0238232, -76.9240150],
+    [-12.0237078, -76.9250128],
+    [-12.0236658, -76.9261930],
+    [-12.0238547, -76.9290361],
+    [-12.0236868, -76.9312570],
+    [-12.0241170, -76.9322869],
+    [-12.0235084, -76.9341645],
+    [-12.0228578, -76.9354841],
+    [-12.0227738, -76.9408486],
+    [-12.0235504, -76.9463954],
+    [-12.0241275, -76.9473288],
+    [-12.0242849, -76.9484017],
+    [-12.0241800, -76.9504509],
+    [-12.0245262, -76.9514808],
+    [-12.0248830, -76.9524357],
+    [-12.0258589, -76.9529078],
+    [-12.0270132, -76.9536373],
+    [-12.0280310, -76.9545171],
+    [-12.0291958, -76.9552467]
+
+], {
+    color: "#FFDE21",
+    weight: 4,
+    opacity: 1,
+    fillColor: "#FFDE21",
+    fillOpacity: 0.15
+}).addTo(map);
+
+
+let zonaSantaClara = L.polygon([
+
+    [-12.0161393, -76.8960101],
+    [-12.0207862, -76.8945858],
+    [-12.0262848, -76.8928692],
+    [-12.0316573, -76.8920109],
+    [-12.0365803, -76.8894869],
+    [-12.0367359, -76.8881914],
+    [-12.0371347, -76.8866894],
+    [-12.0359805, -76.8863032],
+    [-12.0352669, -76.8851445],
+    [-12.0365392, -76.8835728],
+    [-12.0381826, -76.8839671],
+    [-12.0394903, -76.8823444],
+    [-12.0416020, -76.8816309],
+    [-12.0436717, -76.8819046],
+    [-12.0474176, -76.8696950],
+    [-12.0423601, -76.8715403],
+    [-12.0368619, -76.8724415],
+    [-12.0379007, -76.8761752],
+    [-12.0342386, -76.8799088],
+    [-12.0340707, -76.8791363],
+    [-12.0342072, -76.8738899],
+    [-12.0360855, -76.8713043],
+    [-12.0351832, -76.8682787],
+    [-12.0359806, -76.8607900],
+    [-12.0324968, -76.8646524],
+    [-12.0304716, -76.8618790],
+    [-12.0296636, -76.8636546],
+    [-12.0285933, -76.8668839],
+    [-12.0309333, -76.8700972],
+    [-12.0302933, -76.8740401],
+    [-12.0285933, -76.8817971],
+    [-12.0271662, -76.8820545],
+    [-12.0268304, -76.8784067],
+    [-12.0257811, -76.8766043],
+    [-12.0271662, -76.8731282],
+    [-12.0285933, -76.8651888],
+    [-12.0286353, -76.8631718],
+    [-12.0269983, -76.8622706],
+    [-12.0259909, -76.8636868],
+    [-12.0243540, -76.8647167],
+    [-12.0231367, -76.8666479],
+    [-12.0217516, -76.8677637],
+    [-12.0216257, -76.8650601],
+    [-12.0208701, -76.8632147],
+    [-12.0185615, -76.8673346],
+    [-12.0177640, -76.8685791],
+    [-12.0168825, -76.8690083],
+    [-12.0168825, -76.8679354],
+    [-12.0147838, -76.8671200],
+    [-12.0127690, -76.8668196],
+    [-12.0111319, -76.8659184],
+    [-12.0118455, -76.8643734],
+    [-12.0114258, -76.8614981],
+    [-12.0125171, -76.8599531],
+    [-12.0110480, -76.8579361],
+    [-12.0117196, -76.8563483],
+    [-12.0134406, -76.8556187],
+    [-12.0149937, -76.8556616],
+    [-12.0160430, -76.8542025],
+    [-12.0180578, -76.8526575],
+    [-12.0204924, -76.8518851],
+    [-12.0229269, -76.8499968],
+    [-12.0232207, -76.8484089],
+    [-12.0196529, -76.8493101],
+    [-12.0156233, -76.8489668],
+    [-12.0137764, -76.8482373],
+    [-12.0122233, -76.8478510],
+    [-12.0066825, -76.8499110],
+    [-12.0063886, -76.8499324],
+    [-12.0051713, -76.8496105],
+    [-12.0058009, -76.8540737],
+    [-12.0064306, -76.8588373],
+    [-12.0075640, -76.8660471],
+    [-12.0086134, -76.8710682],
+    [-12.0105023, -76.8790505],
+    [-12.0112159, -76.8845436],
+    [-12.0131048, -76.8857023],
+    [-12.0138603, -76.8881914],
+    [-12.0150776, -76.8914959],
+    [-12.0158332, -76.8940279],
+    [-12.0161393, -76.8960101]
+
+], {
+    color: "#0cb7f2",
+    weight: 4,
+    opacity: 1,
+    fillColor: "#0cb7f2",
+    fillOpacity: 0.15
+}).addTo(map);
+
+let zonaHuaycan = L.polygon([
+
+    [-12.0052402, -76.8496018],
+    [-12.0067514, -76.8499023],
+    [-12.0122922, -76.8478423],
+    [-12.0127844, -76.8467070],
+    [-12.0137078, -76.8447329],
+    [-12.0150511, -76.8433596],
+    [-12.0166461, -76.8430163],
+    [-12.0187448, -76.8426730],
+    [-12.0213473, -76.8418147],
+    [-12.0243694, -76.8403555],
+    [-12.0265520, -76.8400122],
+    [-12.0276433, -76.8395831],
+    [-12.0289025, -76.8379523],
+    [-12.0304135, -76.8370940],
+    [-12.0335195, -76.8367506],
+    [-12.0367094, -76.8374373],
+    [-12.0397313, -76.8353773],
+    [-12.0385561, -76.8337466],
+    [-12.0363736, -76.8338324],
+    [-12.0344429, -76.8342616],
+    [-12.0323443, -76.8342616],
+    [-12.0304135, -76.8328024],
+    [-12.0312530, -76.8316866],
+    [-12.0332677, -76.8328883],
+    [-12.0349466, -76.8310000],
+    [-12.0336035, -76.8309142],
+    [-12.0328479, -76.8291975],
+    [-12.0339392, -76.8279101],
+    [-12.0354502, -76.8288542],
+    [-12.0379685, -76.8301417],
+    [-12.0409065, -76.8303992],
+    [-12.0415781, -76.8273093],
+    [-12.0392277, -76.8255927],
+    [-12.0412423, -76.8241335],
+    [-12.0400671, -76.8209578],
+    [-12.0386401, -76.8203570],
+    [-12.0362057, -76.8217303],
+    [-12.0356181, -76.8211295],
+    [-12.0359539, -76.8199707],
+    [-12.0361638, -76.8181683],
+    [-12.0348206, -76.8140484],
+    [-12.0325961, -76.8137480],
+    [-12.0304975, -76.8149496],
+    [-12.0286087, -76.8153359],
+    [-12.0277692, -76.8146922],
+    [-12.0279791, -76.8134905],
+    [-12.0277692, -76.8112589],
+    [-12.0285667, -76.8103577],
+    [-12.0293642, -76.8093707],
+    [-12.0311271, -76.8091132],
+    [-12.0329319, -76.8088986],
+    [-12.0355342, -76.8089844],
+    [-12.0351984, -76.8079544],
+    [-12.0339392, -76.8071820],
+    [-12.0328060, -76.8068816],
+    [-12.0315888, -76.8069245],
+    [-12.0317567, -76.8056799],
+    [-12.0313369, -76.8044354],
+    [-12.0311271, -76.8023325],
+    [-12.0295741, -76.8015171],
+    [-12.0275174, -76.7999293],
+    [-12.0263841, -76.8010880],
+    [-12.0266360, -76.8029763],
+    [-12.0254607, -76.8036200],
+    [-12.0237818, -76.8013455],
+    [-12.0227744, -76.8035771],
+    [-12.0218929, -76.8037058],
+    [-12.0200461, -76.8034912],
+    [-12.0192905, -76.8047787],
+    [-12.0190387, -76.8064524],
+    [-12.0172338, -76.8077399],
+    [-12.0149251, -76.8068816],
+    [-12.0143794, -76.8041779],
+    [-12.0157646, -76.8021180],
+    [-12.0180313, -76.7998005],
+    [-12.0189967, -76.7959381],
+    [-12.0187448, -76.7919899],
+    [-12.0160585, -76.7931487],
+    [-12.0147572, -76.7961956],
+    [-12.0147152, -76.7935778],
+    [-12.0132041, -76.7899729],
+    [-12.0112313, -76.7895867],
+    [-12.0103918, -76.7943074],
+    [-12.0111893, -76.7960669],
+    [-12.0057324, -76.7975260],
+    [-12.0075374, -76.7989851],
+    [-12.0087547, -76.8027188],
+    [-12.0092584, -76.8039204],
+    [-12.0088386, -76.8076111],
+    [-12.0092584, -76.8102719],
+    [-12.0105177, -76.8148209],
+    [-12.0095103, -76.8133189],
+    [-12.0067818, -76.8114735],
+    [-12.0042632, -76.8095423],
+    [-12.0056904, -76.8122889],
+    [-12.0066559, -76.8152501],
+    [-12.0065299, -76.8164517],
+    [-12.0055225, -76.8172242],
+    [-12.0047879, -76.8176962],
+    [-12.0045361, -76.8184472],
+    [-12.0025002, -76.8199278],
+    [-12.0014507, -76.8217946],
+    [-12.0017026, -76.8235113],
+    [-12.0031298, -76.8270518],
+    [-12.0033607, -76.8290044],
+    [-12.0016291, -76.8290903],
+    [-12.0005587, -76.8302490],
+    [-11.9998451, -76.8300666],
+    [-11.9989426, -76.8301202],
+    [-11.9983654, -76.8305494],
+    [-11.9976098, -76.8317617],
+    [-11.9967178, -76.8314506],
+    [-11.9950349, -76.8325191],
+    [-11.9954547, -76.8350511],
+    [-11.9974696, -76.8395572],
+    [-12.0013316, -76.8421751],
+    [-12.0036403, -76.8453508],
+    [-12.0052402, -76.8496018]
+
+], {
+    color: "#CC6B22",
+    weight: 4,
+    opacity: 1,
+    fillColor: "#CC6B22",
+    fillOpacity: 0.15
+}).addTo(map);
+
+function mostrarDetalle(p){
+
+    // Imagen
+    document.getElementById("detalleImagen").src =
+        p.imagen || "ubicacion_serenazgo.png";
+
+    // Dirección
+    document.getElementById("detalleDireccion").textContent =
+        p.dir || "---";
+
+    // Base
+    document.getElementById("detalleBase").textContent =
+        p.base || "---";
+
+    // Coordenadas
+    document.getElementById("detalleCoordenadas").textContent =
+        p.lat + " , " + p.lng;
+
+    // Estado
+    let estado = document.getElementById("detalleEstado");
+
+    if(p.ok){
+
+        estado.textContent = "🟢 REALIZADA";
+
+        estado.className = "estadoRealizada";
+
+    }else{
+
+        estado.textContent = "🔴 PENDIENTE";
+
+        estado.className = "estadoPendiente";
+
+    }
+
+    // Abrir panel
+    document.getElementById("detalleLateral")
+        .classList.add("activo");
+}
+
+function cerrarDetalle(){
+
+    document.getElementById("detalleLateral")
+        .classList.remove("activo");
+
+}
+
+function cargar(lista){
+actual=lista;
+capas.forEach(c=>map.removeLayer(c));
+capas=[];
+
+listaDiv.innerHTML="";
+
+lista = [...lista].sort((a,b)=>{
+let estadoA = a.ok ? 1 : 0;
+let estadoB = b.ok ? 1 : 0;
+return estadoA - estadoB;
+});
+
+lista.forEach(p=>{
+let icon=L.divIcon({className:"",html:`<div class="cuaderno ${p.ok?"verde":"rojo"}"><img src="./assets/sereno.png" style="width:30px;height:30px;object-fit:contain;"></div>`});
+let m=L.marker([p.lat,p.lng],{icon}).addTo(map);
+m.bindPopup(`<b>${p.base}</b><br>${p.dir}<br>${p.ok?"🟢 REALIZADA":"🔴 PENDIENTE"}`);
+/* NUEVO: clic sobre el punto */
+m.on("click", function(){
+
+    mostrarDetalle(p);
+
+});
+capas.push(m);
+
+listaDiv.innerHTML+=`<div class="item ${p.ok?"realizada":"pendiente"}" onclick="cambiar(${datos.indexOf(p)})">${p.dir}<br>${p.ok?"🟢 REALIZADA":"🔴 PENDIENTE"}</div>`;
+});
+
+resumen(lista);
+}
+
+function resumen(l){
+let r=l.filter(x=>x.ok).length;
+total.textContent=l.length;
+real.textContent=r;
+pend.textContent=l.length-r;
+avance.textContent=l.length?Math.round(r/l.length*100)+"%":"0%";
+}
+
+function cambiar(i){
+datos[i].ok=!datos[i].ok;
+cargar(actual);
+}
+
+function seleccionar(b){
+let l=datos.filter(x=>x.base==b);
+cargar(l);
+map.fitBounds(L.latLngBounds(l.map(x=>[x.lat,x.lng])),{padding:[50,50]});
+}
+
+function todos(){cargar(datos)}
+
+buscar.oninput=function(){
+let t=this.value.toLowerCase();
+cargar(actual.filter(x=>x.dir.toLowerCase().includes(t)));
+}
+
+function exportarPDF(){
+let pendientes=datos.filter(x=>!x.ok);
+let w=window.open("");
+w.document.write(`<h1 style="text-align:center">Control de Firmas de Cuaderno GIS</h1>
+<p>${new Date().toLocaleString()}</p>
+<h2>Total ${datos.length} | Realizadas ${datos.filter(x=>x.ok).length} | Pendientes ${pendientes.length}</h2>
+<h2>Pendientes</h2>${pendientes.map(x=>"<p>"+x.base+" - "+x.dir+"</p>").join("")}`);
+w.print();
+}
+
+setInterval(()=>{
+let d=new Date();
+fecha.textContent=d.toLocaleDateString();
+hora.textContent=d.toLocaleTimeString();
+},1000);
+
+document.onclick=e=>{
+for(let i=0;i<15;i++){
+let s=document.createElement("span");
+s.className="chispa";
+s.innerHTML="✦";
+s.style.left=e.clientX+"px";
+s.style.top=e.clientY+"px";
+s.style.transform=`translate(${Math.random()*80-40}px,${Math.random()*80-40}px)`;
+document.body.appendChild(s);
+setTimeout(()=>s.remove(),700);
+}
+}
+
+let listaDiv=document.getElementById("lista");
+
+todos();
+
+
+if(document.getElementById('buscar')){
+document.getElementById('buscar').addEventListener('input',function(){
+let t=this.value.toLowerCase();
+cargar(actual.filter(x=>(x.base+x.dir).toLowerCase().includes(t)));
+});
+}
+
+function exportarPDF(){
+let zonas={};
+
+datos.forEach(x=>{
+ if(!zonas[x.base]){
+  zonas[x.base]={total:0,real:0,pedientes:[]};
+ }
+ zonas[x.base].total++;
+ if(x.ok){
+  zonas[x.base].real++;
+ }else{
+  zonas[x.base].pedientes.push(x.dir);
+ }
+});
+
+let html=`
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Control de Firmas de Cuaderno</title>
+<style>
+body{font-family:Arial;margin:35px;color:#111}
+h1{text-align:center;font-size:24px}
+.fecha{text-align:right;font-size:11px}
+table{width:100%;border-collapse:collapse;margin-top:15px}
+th{background:#0f766e;color:white;padding:8px}
+td{border:1px solid #999;padding:7px;text-align:center}
+.pend{text-align:left}
+
+/* GRID DEGRADADO PARA LABELS DE ZONAS */
+.zona-label, .base-label, .titulo-base{
+background:
+linear-gradient(135deg,rgba(56,189,248,.95),rgba(30,64,175,.95));
+background-image:
+linear-gradient(rgba(255,255,255,.12) 1px, transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.12) 1px, transparent 1px),
+linear-gradient(135deg,#38bdf8,#1e40af);
+background-size:22px 22px,22px 22px,100% 100%;
+border-radius:10px;
+padding:8px;
+box-shadow:0 0 12px rgba(56,189,248,.7);
+font-weight:bold;
+}
+
+/* VARIACION GRID PARA FIRMAS POR BASE */
+.firmas-base-header{
+background:
+linear-gradient(135deg,rgba(14,116,144,.95),rgba(59,130,246,.95));
+background-image:
+linear-gradient(rgba(255,255,255,.10) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.10) 1px,transparent 1px),
+linear-gradient(135deg,#0e7490,#2563eb);
+background-size:16px 16px,16px 16px,100% 100%;
+border-radius:12px;
+padding:10px;
+box-shadow:0 0 15px rgba(14,165,233,.6);
+}
+
+
+/* GRID ESTETICO VISIBLE PARA LABELS */
+.grid-estetico-zona{
+position:relative;
+overflow:hidden;
+background:
+linear-gradient(135deg,#38bdf8,#1d4ed8);
+}
+
+.grid-estetico-zona::before{
+content:"";
+position:absolute;
+inset:0;
+background-image:
+linear-gradient(rgba(255,255,255,.20) 1px, transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.20) 1px, transparent 1px);
+background-size:18px 18px;
+opacity:.55;
+pointer-events:none;
+}
+
+.grid-estetico-zona > *{
+position:relative;
+z-index:2;
+}
+
+
+/* GRID DIFERENTE PARA FIRMAS POR BASE */
+.grid-estetico-firmas{
+position:relative;
+overflow:hidden;
+background:
+linear-gradient(135deg,#0891b2,#2563eb);
+}
+
+.grid-estetico-firmas::before{
+content:"";
+position:absolute;
+inset:0;
+background-image:
+linear-gradient(rgba(255,255,255,.16) 1px, transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.16) 1px, transparent 1px);
+background-size:12px 12px;
+opacity:.6;
+pointer-events:none;
+}
+
+.grid-estetico-firmas > *{
+position:relative;
+z-index:2;
+}
+
+
+/* PALETA NUEVA - DISEÑO VISUAL */
+body{
+background:
+linear-gradient(135deg,#FFF1D1 0%,#00B7CD 100%);
+}
+
+/* GRID GENERAL */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(94,49,34,.10) 1px,transparent 1px),
+linear-gradient(90deg,rgba(94,49,34,.10) 1px,transparent 1px);
+background-size:35px 35px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Panel de bases */
+.panel,
+.card,
+.contenedor,
+.box{
+background:rgba(255,241,209,.92);
+border:2px solid rgba(0,183,205,.45);
+box-shadow:0 8px 25px rgba(94,49,34,.18);
+}
+
+/* Bases MAYORAZGO SALAMANCA ETC */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#00B7CD,#FF9100);
+color:#FFF1D1;
+border:2px solid #DF301C;
+box-shadow:
+0 0 15px rgba(0,183,205,.7),
+0 5px 15px rgba(94,49,34,.25);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#5E3122,#DF301C);
+color:#FFF1D1;
+border:2px solid #FF9100;
+box-shadow:0 0 18px rgba(255,145,0,.55);
+}
+
+/* Botones */
+button{
+background:linear-gradient(135deg,#DF301C,#FF9100);
+color:#FFF1D1;
+border:none;
+}
+
+button:hover{
+box-shadow:0 0 15px #FF9100;
+}
+
+
+/* ===== NUEVA ARMONIA VISUAL - LIMPIA Y SUAVE ===== */
+
+/* Fondo general */
+body{
+background:
+linear-gradient(135deg,#FFFDF8 0%,#E6F7FA 45%,#D6EEF8 100%);
+color:#5E3122;
+}
+
+/* Grid elegante */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(0,183,205,.10) 1px,transparent 1px),
+linear-gradient(90deg,rgba(0,183,205,.10) 1px,transparent 1px);
+background-size:40px 40px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezados principales */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#00B7CD,#7EDCE8);
+color:#FFFFFF;
+border-radius:16px;
+box-shadow:0 8px 25px rgba(0,183,205,.25);
+}
+
+/* Título */
+.titulo{
+color:#FFFFFF !important;
+text-shadow:0 2px 8px rgba(94,49,34,.35);
+}
+
+/* Paneles */
+.panel,
+.card,
+.contenedor,
+.box{
+background:rgba(255,255,255,.92);
+border:1px solid rgba(0,183,205,.25);
+box-shadow:0 6px 20px rgba(94,49,34,.12);
+color:#5E3122;
+}
+
+/* Labels de bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#00B7CD,#9BE3ED);
+color:#FFFFFF;
+border:1px solid rgba(255,255,255,.8);
+box-shadow:0 4px 15px rgba(0,183,205,.25);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#FFF1D1,#FFD8A8);
+color:#5E3122;
+border-left:5px solid #FF9100;
+box-shadow:0 5px 18px rgba(255,145,0,.18);
+}
+
+/* Botones */
+button{
+background:
+linear-gradient(135deg,#FF9100,#DF301C);
+color:white;
+border:none;
+box-shadow:0 4px 12px rgba(223,48,28,.25);
+}
+
+button:hover{
+filter:brightness(1.05);
+}
+
+
+/* ===== VERSION PALETA ARMONICA CON FF9A00 ===== */
+
+body{
+background:
+linear-gradient(135deg,#FFFFFF 0%,#FFF4E5 35%,#DDF7FA 100%);
+color:#5E3122;
+}
+
+/* Grid suave futurista */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(0,183,205,.10) 1px,transparent 1px),
+linear-gradient(90deg,rgba(0,183,205,.10) 1px,transparent 1px);
+background-size:38px 38px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezados */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#00B7CD 0%,#5ED5E5 55%,#FFFFFF 100%);
+color:#FFFFFF;
+box-shadow:0 8px 22px rgba(0,183,205,.25);
+}
+
+/* Titulo */
+.titulo{
+color:#FFFFFF !important;
+text-shadow:0 2px 8px rgba(94,49,34,.35);
+}
+
+/* Paneles generales */
+.panel,
+.card,
+.contenedor,
+.box{
+background:rgba(255,255,255,.94);
+border:1px solid rgba(0,183,205,.25);
+box-shadow:0 6px 20px rgba(94,49,34,.12);
+}
+
+/* Zonas */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#00B7CD,#8BE4EE);
+color:#FFFFFF;
+border-radius:12px;
+box-shadow:0 5px 14px rgba(0,183,205,.25);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#FFF1D1,#FF9A00);
+color:#5E3122;
+border-left:5px solid #FF9A00;
+}
+
+/* Botones */
+button{
+background:
+linear-gradient(135deg,#FF9A00,#DF301C);
+color:#FFFFFF;
+box-shadow:0 5px 14px rgba(255,154,0,.35);
+}
+
+/* Estados visuales */
+.realizado{
+box-shadow:0 0 12px rgba(0,183,205,.35);
+}
+
+.pendiente{
+box-shadow:0 0 12px rgba(223,48,28,.25);
+}
+
+
+/* ===== CAMBIO ENCABEZADO AMARILLO/NARANJA + FONDO ROJO GRID ===== */
+
+/* Fondo principal con rojo DF301C */
+body{
+background:
+linear-gradient(135deg,
+rgba(223,48,28,.92),
+rgba(239,105,5,.75)),
+#DF301C;
+color:#5E3122;
+}
+
+/* Grid sobre fondo rojo */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,241,209,.18) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,241,209,.18) 1px,transparent 1px);
+background-size:38px 38px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezados con los amarillos/naranjas */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#FF9A00 0%,#FF9100 45%,#EF6905 100%);
+color:#FFFFFF;
+box-shadow:
+0 8px 25px rgba(94,49,34,.35),
+0 0 20px rgba(255,154,0,.45);
+}
+
+/* Titulo */
+.titulo{
+color:#FFFFFF !important;
+text-shadow:0 2px 8px rgba(94,49,34,.45);
+}
+
+/* Paneles blancos para mantener lectura */
+.panel,
+.card,
+.contenedor,
+.box{
+background:rgba(255,255,255,.94);
+border:1px solid rgba(255,241,209,.8);
+box-shadow:0 8px 25px rgba(94,49,34,.25);
+}
+
+/* Bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#FF9A00,#EF6905);
+color:#FFFFFF;
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#FFF1D1,#FF9A00);
+color:#5E3122;
+}
+
+
+/* ===== PALETA UNICA DF301C FF9100 FF9A00 FFFC8C BLANCO ===== */
+
+/* Fondo principal */
+body{
+background:
+linear-gradient(135deg,#DF301C 0%,#FF9100 55%,#FF9A00 100%);
+color:#FFFFFF;
+}
+
+/* Grid tecnológico usando solo la paleta */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,252,140,.22) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,252,140,.22) 1px,transparent 1px);
+background-size:36px 36px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezado */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#FFFC8C 0%,#FF9A00 45%,#FF9100 100%);
+color:#FFFFFF;
+text-shadow:
+0 2px 4px #DF301C,
+0 4px 10px rgba(223,48,28,.55);
+box-shadow:
+0 8px 25px rgba(223,48,28,.35);
+}
+
+/* Titulo */
+.titulo{
+color:#FFFFFF !important;
+text-shadow:
+0 2px 3px #DF301C,
+0 0 12px #FF9100;
+}
+
+/* Paneles */
+.panel,
+.card,
+.contenedor,
+.box{
+background:#FFFFFF;
+color:#DF301C;
+border:2px solid #FFFC8C;
+box-shadow:
+0 8px 25px rgba(94,49,34,.25);
+}
+
+/* Labels de bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#FF9A00,#FF9100,#DF301C);
+color:#FFFFFF;
+text-shadow:0 2px 4px #DF301C;
+box-shadow:0 0 15px rgba(255,252,140,.6);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#FFFC8C,#FF9A00);
+color:#DF301C;
+text-shadow:none;
+}
+
+/* Botones */
+button{
+background:
+linear-gradient(135deg,#DF301C,#FF9100,#FF9A00);
+color:#FFFFFF;
+text-shadow:0 2px 3px #DF301C;
+border:1px solid #FFFC8C;
+box-shadow:0 5px 15px rgba(223,48,28,.4);
+}
+
+
+/* ===== CORRECCION FONDO AZUL - PALETA SOLO SOLICITADA ===== */
+
+/* Eliminar tonos azules del fondo general */
+body{
+background:
+linear-gradient(135deg,#DF301C 0%,#FF9100 55%,#FF9A00 100%) !important;
+color:#FFFFFF;
+}
+
+/* Grid usando solo amarillo suave */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,252,140,.18) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,252,140,.18) 1px,transparent 1px);
+background-size:35px 35px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Cajas principales con rojo oscuro y degradado */
+.panel,
+.card,
+.contenedor,
+.box{
+background:
+linear-gradient(135deg,#DF301C,#8F1F14) !important;
+color:#FFFFFF !important;
+border:1px solid #FFFC8C;
+box-shadow:0 8px 22px rgba(0,0,0,.25);
+}
+
+/* Encabezados de cajas */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#DF301C,#FF9100,#FF9A00) !important;
+color:#FFFFFF !important;
+}
+
+/* Labels de bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#DF301C,#FF9100) !important;
+color:#FFFFFF !important;
+text-shadow:0 2px 4px rgba(0,0,0,.35);
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#DF301C,#FF9100) !important;
+color:#FFFFFF !important;
+}
+
+/* Textos dentro de cajas */
+.panel *,
+.card *,
+.contenedor *,
+.box *,
+.zona-label *,
+.base-label *,
+.firmas-base-header *{
+color:#FFFFFF;
+}
+
+
+/* CORRECCION ELIMINAR AZULES OSCUROS RESTANTES */
+.item,
+.firma-item,
+.lista-item,
+.resultado-item,
+.lead-item{
+background:linear-gradient(135deg,#DF301C,#8F1F14) !important;
+color:#FFFFFF !important;
+border-left:5px solid #FF9A00 !important;
+box-shadow:0 4px 10px rgba(0,0,0,.25);
+}
+
+.item *,
+.firma-item *,
+.lista-item *,
+.resultado-item *,
+.lead-item *{
+color:#FFFFFF !important;
+}
+
+/* Encabezado con rojo oscuro solicitado */
+.titulo-container,
+header,
+.encabezado,
+.firmas-base-header{
+background:
+linear-gradient(135deg,#8F1F14,#DF301C,#FF9100) !important;
+color:#FFFFFF !important;
+text-shadow:0 2px 4px rgba(0,0,0,.45);
+}
+
+/* Recuadro de firmas */
+.firmas-base{
+background:
+linear-gradient(135deg,#DF301C,#8F1F14) !important;
+}
+
+
+/* AJUSTE FINAL: ELIMINAR CUALQUIER FONDO AZUL MARINO RESTANTE */
+#lista .item,
+#lista .firma-item,
+#lista .lista-item,
+#lista .resultado-item,
+#lista .lead-item,
+#lista > div,
+.item.realizada,
+.item.pendiente,
+.item{
+background:#8F1F14 !important;
+background-image:linear-gradient(135deg,#DF301C 0%,#8F1F14 100%) !important;
+color:#FFFFFF !important;
+border:1px solid #FF9A00 !important;
+border-left:6px solid #FFFC8C !important;
+box-shadow:0 4px 10px rgba(0,0,0,.22) !important;
+}
+
+#lista .item *,
+#lista .firma-item *,
+#lista .lista-item *,
+#lista .resultado-item *,
+#lista .lead-item *,
+#lista > div *{
+color:#FFFFFF !important;
+}
+
+#lista .item:hover,
+#lista .firma-item:hover,
+#lista > div:hover{
+background:#A32417 !important;
+background-image:linear-gradient(135deg,#FF9100 0%,#DF301C 55%,#8F1F14 100%) !important;
+}
+
+/* Fondo del panel de firmas */
+#lista{
+background:transparent !important;
+}
+
+.card,
+.panel,
+.contenedor,
+.box,
+.firmas-base,
+.firmas-base-header{
+background-image:linear-gradient(135deg,#DF301C 0%,#8F1F14 100%) !important;
+color:#FFFFFF !important;
+}
+
+/* Buscador más armónico */
+.buscar,
+input[type="text"],
+input[type="search"]{
+background:#FFF1D1 !important;
+color:#5E3122 !important;
+border:1px solid #FF9A00 !important;
+}
+
+/* Encabezado más rojo oscuro */
+header,
+.encabezado,
+.titulo-container{
+background:#8F1F14 !important;
+background-image:linear-gradient(135deg,#8F1F14 0%,#DF301C 55%,#FF9100 100%) !important;
+color:#FFFFFF !important;
+}
+
+
+/* CORRECCION: ELIMINAR RESTOS AZUL MARINO - SOLO DISEÑO */
+
+/* Reemplazo de fondos oscuros heredados */
+html,
+body{
+background:
+linear-gradient(135deg,#DF301C 0%,#FF9100 55%,#FF9A00 100%) !important;
+}
+
+/* Contenedores internos que aún puedan tener azul */
+div,
+section,
+article,
+aside{
+}
+
+/* Lista de firmas sin tonos azul oscuro */
+.firma,
+.firma-card,
+.item,
+.lista-firma,
+.firma-item,
+.card-firma,
+#lista div{
+background:
+linear-gradient(135deg,#DF301C,#8F1F14) !important;
+color:#FFFFFF !important;
+}
+
+/* Estados de texto */
+.firma *,
+.firma-card *,
+.item *,
+.lista-firma *,
+.firma-item *,
+.card-firma *,
+#lista div *{
+color:#FFFFFF !important;
+}
+
+/* Cajas principales */
+.panel,
+.card,
+.box,
+.contenedor{
+background:
+linear-gradient(135deg,#DF301C,#8F1F14) !important;
+}
+
+/* Evitar colores azulados heredados */
+[class*="dark"],
+[class*="blue"],
+[class*="navy"]{
+background-color:#8F1F14 !important;
+color:#FFFFFF !important;
+}
+
+
+/* ===== NUEVA PALETA AZUL UNICA ===== */
+/* Colores:
+#0D47A1 azul profundo
+#2196F3 azul principal
+#90CAF9 azul claro
+#2F2FE4 azul eléctrico
+Blanco para textos
+*/
+
+body{
+background:
+linear-gradient(135deg,#0D47A1 0%,#2196F3 55%,#90CAF9 100%) !important;
+color:#FFFFFF !important;
+}
+
+/* Grid tecnológico azul */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,255,255,.18) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.18) 1px,transparent 1px);
+background-size:35px 35px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Encabezados */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#0D47A1,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+text-shadow:0 2px 5px rgba(0,0,0,.35);
+}
+
+/* Paneles */
+.panel,
+.card,
+.box,
+.contenedor{
+background:
+linear-gradient(135deg,#2196F3,#0D47A1) !important;
+color:#FFFFFF !important;
+border:1px solid #90CAF9 !important;
+box-shadow:0 8px 22px rgba(13,71,161,.45);
+}
+
+/* Bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+border:1px solid #90CAF9;
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#0D47A1,#2196F3) !important;
+color:#FFFFFF !important;
+}
+
+/* Tarjetas de firmas */
+.item,
+.firma-item,
+.lista-item,
+.card-firma,
+#lista div{
+background:
+linear-gradient(135deg,#0D47A1,#2F2FE4) !important;
+color:#FFFFFF !important;
+border-color:#90CAF9 !important;
+}
+
+.item *,
+.firma-item *,
+.lista-item *,
+.card-firma *,
+#lista div *{
+color:#FFFFFF !important;
+}
+
+/* Buscadores */
+input,
+.buscar{
+background:#90CAF9 !important;
+color:#0D47A1 !important;
+border:1px solid #FFFFFF !important;
+}
+
+/* Botones */
+button{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+border:1px solid #90CAF9 !important;
+box-shadow:0 5px 15px rgba(47,47,228,.45);
+}
+
+
+/* CORRECCION SOMBRA DE TEXTO NEGRA */
+.titulo,
+header *,
+.encabezado *,
+.titulo-container *,
+.zona-label *,
+.base-label *,
+.firmas-base-header *,
+.item *,
+.firma-item *,
+.lista-item *,
+.card-firma *{
+text-shadow:
+0 2px 4px rgba(0,0,0,.75) !important;
+}
+
+/* Eliminar sombras rojizas heredadas */
+text-shadow{
+color:inherit;
+}
+
+
+/* ===== CORRECCION CAJAS DE BASES Y LISTAS CON PALETA AZUL ===== */
+/* Paleta:
+#0D47A1 azul profundo
+#2196F3 azul principal
+#90CAF9 azul claro
+#2F2FE4 azul eléctrico
+blanco texto
+*/
+
+.zona-label,
+.base-label,
+#listaBase .item,
+#listaBase .firma-item,
+#listaBase .lista-item,
+#lista .item,
+#lista .firma-item,
+#lista .lista-item,
+.item.pendiente,
+.item.realizada{
+background:
+linear-gradient(135deg,#0D47A1 0%,#2F2FE4 55%,#2196F3 100%) !important;
+color:#FFFFFF !important;
+border:1px solid #90CAF9 !important;
+box-shadow:0 5px 15px rgba(13,71,161,.45) !important;
+}
+
+.zona-label *,
+.base-label *,
+#listaBase *,
+#lista *,
+.item *,
+.firma-item *,
+.lista-item *{
+color:#FFFFFF !important;
+text-shadow:0 2px 4px rgba(0,0,0,.75) !important;
+}
+
+/* Diferenciar estados sin salir de la gama */
+.item.pendiente{
+background:
+linear-gradient(135deg,#0D47A1,#2F2FE4) !important;
+}
+
+.item.realizada{
+background:
+linear-gradient(135deg,#2196F3,#90CAF9) !important;
+color:#FFFFFF !important;
+}
+
+/* Cuadro general de selección de bases */
+.panel-bases,
+.bases-container,
+#bases{
+background:
+linear-gradient(135deg,#0D47A1,#2196F3) !important;
+border:1px solid #90CAF9 !important;
+}
+
+
+/* CORRECCION SOMBRA NEGRA EN TEXTOS DE BASES */
+.zona-label,
+.base-label,
+.zona-label *,
+.base-label *,
+#bases *,
+.panel-bases *{
+text-shadow:
+0 2px 4px rgba(0,0,0,.85) !important;
+}
+
+/* eliminar sombras de color heredadas */
+.zona-label,
+.base-label{
+filter:none !important;
+}
+
+
+/* ===== REDISEÑO DASHBOARD PREMIUM ESTILO BI ===== */
+/* Inspirado en dashboards corporativos: fondo oscuro, tarjetas limpias, morados/azules */
+
+body{
+background:
+linear-gradient(135deg,#15102F 0%,#24165A 45%,#0D47A1 100%) !important;
+color:#FFFFFF !important;
+}
+
+/* Grid tecnológico sutil */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+background-size:32px 32px;
+pointer-events:none;
+z-index:-1;
+}
+
+/* Paneles tipo dashboard */
+.panel,
+.card,
+.box,
+.contenedor,
+.panel-bases,
+.bases-container{
+background:
+linear-gradient(145deg,rgba(255,255,255,.96),rgba(238,240,255,.95)) !important;
+color:#25175A !important;
+border:1px solid rgba(255,255,255,.7);
+border-radius:20px !important;
+box-shadow:
+0 15px 35px rgba(0,0,0,.25);
+}
+
+/* Encabezados estilo BI */
+header,
+.encabezado,
+.titulo-container{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3,#90CAF9) !important;
+color:#FFFFFF !important;
+border-radius:0 0 24px 24px;
+box-shadow:0 10px 30px rgba(47,47,228,.45);
+}
+
+.titulo{
+color:#FFFFFF !important;
+text-shadow:0 3px 8px rgba(0,0,0,.7) !important;
+}
+
+/* Tarjetas de bases */
+.zona-label,
+.base-label{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+border-radius:14px !important;
+box-shadow:0 8px 18px rgba(47,47,228,.35);
+text-shadow:0 2px 5px rgba(0,0,0,.7) !important;
+}
+
+/* Firmas por base */
+.firmas-base-header{
+background:
+linear-gradient(135deg,#0D47A1,#2F2FE4) !important;
+color:#FFFFFF !important;
+border-radius:18px 18px 0 0;
+}
+
+/* Buscador */
+input,
+.buscar{
+background:#FFFFFF !important;
+color:#0D47A1 !important;
+border-radius:14px !important;
+border:2px solid #90CAF9 !important;
+}
+
+/* Lista de firmas tipo tarjeta BI */
+.item,
+.firma-item,
+.lista-item,
+.card-firma,
+#lista div{
+background:
+linear-gradient(145deg,#FFFFFF,#E3F2FD) !important;
+color:#0D47A1 !important;
+border-radius:14px !important;
+border-left:6px solid #2F2FE4 !important;
+box-shadow:0 6px 15px rgba(0,0,0,.15);
+}
+
+.item *,
+.firma-item *,
+.lista-item *,
+.card-firma *,
+#lista div *{
+color:#0D47A1 !important;
+text-shadow:none !important;
+}
+
+/* Estado pendiente */
+.pendiente{
+border-left-color:#DF301C !important;
+}
+
+/* Estado realizado */
+.realizada{
+border-left-color:#2196F3 !important;
+}
+
+/* Botones estilo dashboard */
+button{
+background:
+linear-gradient(135deg,#2F2FE4,#2196F3) !important;
+color:#FFFFFF !important;
+border-radius:14px !important;
+box-shadow:0 8px 20px rgba(47,47,228,.4);
+}
+
+/* Efecto tarjeta */
+.panel:hover,
+.card:hover{
+transform:translateY(-2px);
+transition:.25s ease;
+}
+
+</style>
+</head>
+<body>
+<div class="fecha">Fecha: ${new Date().toLocaleString()}</div>
+<h1>Control de Firmas de Cuaderno</h1>
+
+<h2>Resumen por zona</h2>
+<table>
+<tr>
+<th>Zona</th>
+<th>Total</th>
+<th>Realizadas</th>
+<th>Pendientes</th>
+<th>Avance</th>
+</tr>`;
+
+Object.keys(zonas).forEach(z=>{
+ let d=zonas[z];
+ let avance=d.total?Math.round((d.real/d.total)*100):0;
+ html+=`
+<tr>
+<td>${z}</td>
+<td>${d.total}</td>
+<td>${d.real}</td>
+<td>${d.total-d.real}</td>
+<td>${avance}%</td>
+</tr>`;
+});
+
+html+=`
+</table>
+
+<h2>Pendientes por firmar</h2>
+<table>
+<tr>
+<th>Zona</th>
+<th>Dirección pendiente</th>
+</tr>`;
+
+Object.keys(zonas).forEach(z=>{
+ zonas[z].pedientes.forEach(dir=>{
+  html+=`<tr><td>${z}</td><td class="pend">${dir}</td></tr>`;
+ });
+});
+
+html+=`
+</table>
+</body>
+</html>`;
+
+let w=window.open("");
+w.document.write(html);
+w.document.close();
+w.onload=function(){
+ w.print();
+};
+}
+
+
+document.addEventListener("click", function(e){
+
+let onda=document.createElement("div");
+onda.className="destelloClick";
+onda.style.left=(e.clientX-8)+"px";
+onda.style.top=(e.clientY-8)+"px";
+document.body.appendChild(onda);
+
+for(let i=0;i<35;i++){
+
+let p=document.createElement("span");
+p.className="cursorParticula";
+
+p.style.left=e.clientX+"px";
+p.style.top=e.clientY+"px";
+
+let x=(Math.random()-0.5)*160;
+let y=(Math.random()-0.5)*160;
+
+p.style.setProperty("--tx",x+"px");
+p.style.setProperty("--ty",y+"px");
+
+document.body.appendChild(p);
+
+setTimeout(function(){
+p.remove();
+},700);
+
+}
+
+setTimeout(function(){
+onda.remove();
+},500);
+
+});
+
+</script>
+</body>
+</html>
